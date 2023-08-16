@@ -1,0 +1,4 @@
+quarry
+requests
+python-dotenv
+datetime
