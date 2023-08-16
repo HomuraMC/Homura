@@ -11,12 +11,32 @@ from quarry.net.server import ServerFactory, ServerProtocol
 from twisted.internet import reactor
 
 from lognk import log
-from dotenv import load_dotenv
+from colorama import Fore, Back, Style
 
+import configparser
+import sys
 import os
-TOKEN = os.getenv("TOKEN")
+from booltool import toBool
 
-load_dotenv()
+
+ini = configparser.ConfigParser()
+ini['HomuraMC'] = {'server_ip': '0.0.0.0','port': 25565,'motd': 'A Minecraft Server','token': "<How To Token Get: https://kqzz.github.io/mc-bearer-token/>",'eula': False}
+if os.path.isfile("./Homura.ini") == False:
+	with open('Homura.ini', 'w') as configfile:
+		# 指定したconfigファイルを書き込み
+		ini.write(configfile)
+
+ini.read('./Homura.ini', 'UTF-8')
+if toBool(ini['HomuraMC']['eula']) != True:
+	log(Fore.RED + "You do not agree with the eula! The eula can be read at https://aka.ms/MinecraftEULA and to agree, set the eula to True in Homura.ini." + Fore.RESET,Fore.RED + "[error]" + Fore.RESET)
+	print("Press Key to Continue...")
+	input()
+	sys.exit()
+elif (ini['HomuraMC']['token'] == "<How To Token Get: https://kqzz.github.io/mc-bearer-token/>") or (ini['HomuraMC']['token'] == ""):
+	log(Fore.RED+"Your token has not been set! Please see how to get a token ( https://kqzz.github.io/mc-bearer-token/ ) to set it up!" + Fore.RESET,Fore.RED+"[error]" + Fore.RESET)
+	print("Press Key to Continue...")
+	input()
+	sys.exit()
 
 class MyDownstream(Downstream):
 	def packet_login_encryption_response(self, buff):
@@ -87,7 +107,7 @@ class MyBridge(Bridge):
 
 		# follow: https://kqzz.github.io/mc-bearer-token/
 
-		accessToken = TOKEN
+		accessToken = ini['HomuraMC']['token']
 
 		url = "https://api.minecraftservices.com/minecraft/profile"
 		headers = {'Authorization': 'Bearer ' + accessToken}
@@ -99,19 +119,19 @@ class MyBridge(Bridge):
 
 
 class MyDownstreamFactory(DownstreamFactory):
+	global ini
 	protocol = MyDownstream
 	bridge_class = MyBridge
-	motd = "HomuraMC Test Server"
+	motd = ini["HomuraMC"]["motd"]
 	
 
 def main():
-	# Parse options
 
 	# Create factory
 	factory = MyDownstreamFactory()
 
 	# Listen
-	factory.listen("0.0.0.0",25565)
+	factory.listen(ini['HomuraMC']['server_ip'],int(ini['HomuraMC']['port']))
 	reactor.run()
 
 

@@ -1,4 +1,5 @@
 quarry
 requests
-python-dotenv
 datetime
+configparser
+colorama
