@@ -9,8 +9,6 @@ import sys
 import os
 from booltool import toBool
 
-import time
-
 
 ini = configparser.ConfigParser()
 ini['HomuraMC'] = {'server_ip': '0.0.0.0','port': 25565,'motd': 'A Minecraft Server','token': "<How To Token Get: https://kqzz.github.io/mc-bearer-token/>",'eula': False}
