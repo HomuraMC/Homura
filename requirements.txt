@@ -1,5 +1,4 @@
 quarry
-requests
 datetime
 configparser
 colorama

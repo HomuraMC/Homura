@@ -1,14 +1,5 @@
-import json
-from xmlrpc.client import ProtocolError
-import requests
-from twisted.python import failure
-
 from twisted.internet import reactor
-from quarry.types.uuid import UUID
-from quarry.net.proxy import UpstreamFactory, Upstream, DownstreamFactory, Downstream, Bridge
-from quarry.net import auth, crypto
 from quarry.net.server import ServerFactory, ServerProtocol
-from twisted.internet import reactor
 
 from lognk import log
 from colorama import Fore, Back, Style
@@ -17,6 +8,8 @@ import configparser
 import sys
 import os
 from booltool import toBool
+
+import time
 
 
 ini = configparser.ConfigParser()
@@ -32,103 +25,98 @@ if toBool(ini['HomuraMC']['eula']) != True:
 	print("Press Key to Continue...")
 	input()
 	sys.exit()
-elif (ini['HomuraMC']['token'] == "<How To Token Get: https://kqzz.github.io/mc-bearer-token/>") or (ini['HomuraMC']['token'] == ""):
-	log(Fore.RED+"Your token has not been set! Please see how to get a token ( https://kqzz.github.io/mc-bearer-token/ ) to set it up!" + Fore.RESET,Fore.RED+"[error]" + Fore.RESET)
-	print("Press Key to Continue...")
-	input()
-	sys.exit()
 
-class MyDownstream(Downstream):
-	def packet_login_encryption_response(self, buff):
-		if self.login_expecting != 1:
-			raise ProtocolError("Out-of-order login")
+
+class HomuraServerProtocol(ServerProtocol):
+	def close(self = None,kmsg = None):
+		if (self != None) and (kmsg != None):
+			ServerProtocol.close(self,kmsg)
+			log(f"{Fore.RED}{self.display_name} is Kicked:{Fore.RESET} {kmsg}")
+		else:
+			ServerProtocol.close(self)
+	def player_joined(self):
+		# Call super. This switches us to "play" mode, marks the player as
+		#   in-game, and does some logging.
+		ServerProtocol.player_joined(self)
+
+		# Send "Join Game" packet
+		log(f"{self.display_name} is trying connect!")
+		if self.protocol_version > 578:
+			self.close("Outdated server! I'm still on 1.15.2")
+		elif self.protocol_version < 578:
+			self.close("Outdated client! I'm using 1.15.2")
+		self.send_packet("join_game",
+			self.buff_type.pack("iBqiB",
+				0,							  # entity id
+				3,							  # game mode
+				0,							  # dimension
+				0,							  # hashed seed
+				0),							 # max players
+			self.buff_type.pack_string("flat"), # level type
+			self.buff_type.pack_varint(1),	  # view distance
+			self.buff_type.pack("??",
+				False,						  # reduced debug info
+				True))						  # show respawn screen
+
+		# Send "Player Position and Look" packet
+		self.send_packet("player_position_and_look",
+			self.buff_type.pack("dddff?",
+				0,						 # x
+				255,					   # y
+				0,						 # z
+				0,						 # yaw
+				0,						 # pitch
+				0b00000),				  # flags
+			self.buff_type.pack_varint(0)) # teleport id
+
+		# Start sending "Keep Alive" packets
+		self.ticker.add_loop(20, self.update_keep_alive)
+
+		# Announce player joined
+		self.factory.send_chat(u"\u00a7e%s has joined." % self.display_name)
+		log(f"{self.display_name} has joined.")
+
+	def player_left(self):
+		ServerProtocol.player_left(self)
+
+		# Announce player left
+		self.factory.send_chat(u"\u00a7e%s has left." % self.display_name)
+		log(f"{self.display_name} has left.")
+
+	def update_keep_alive(self):
+		# Send a "Keep Alive" packet
 
 		# 1.7.x
-		if self.protocol_version <= 5:
-			def unpack_array(b): return b.read(b.unpack('h'))
-		# 1.8.x
+		if self.protocol_version <= 338:
+			payload =  self.buff_type.pack_varint(0)
+
+		# 1.12.2
 		else:
-			def unpack_array(b): return b.read(b.unpack_varint(max_bits=16))
-		log(f"{self.display_name} is trying to connect!")
-		log(f"{self.display_name}'s protocol version: {self.protocol_version}")
+			payload = self.buff_type.pack('Q', 0)
 
-		p_shared_secret = unpack_array(buff)
-		p_verify_token = unpack_array(buff)
+		self.send_packet("keep_alive", payload)
 
-		shared_secret = crypto.decrypt_secret(
-			self.factory.keypair,
-			p_shared_secret)
-
-		verify_token = crypto.decrypt_secret(
-			self.factory.keypair,
-			p_verify_token)
-
-		self.login_expecting = None
-
-		if verify_token != self.verify_token:
-			raise ProtocolError("Verify token incorrect")
-
-		# enable encryption
-		self.cipher.enable(shared_secret)
-		self.logger.debug("Encryption enabled")
-
-		# make digest
-		digest = crypto.make_digest(
-			self.server_id.encode('ascii'),
-			shared_secret,
-			self.factory.public_key)
-
-		# do auth
-		remote_host = None
-
-		# deferred = auth.has_joined(
-		#	 self.factory.auth_timeout,
-		#	 digest,
-		#	 self.display_name,
-		#	 remote_host)
-		# deferred.addCallbacks(self.auth_ok, self.auth_failed)
-
-		r = requests.get('https://sessionserver.mojang.com/session/minecraft/hasJoined',
-						 params={'username': self.display_name, 'serverId': digest, 'ip': remote_host})
-
-		if r.status_code == 200:
-			self.auth_ok(r.json())
-			log(f"{self.display_name} is Connected!")
-		else:
-			self.auth_failed(failure.Failure(
-				auth.AuthException('invalid', 'invalid session')))
+	def packet_chat_message(self, buff):
+		# When we receive a chat message from the player, ask the factory
+		# to relay it to all connected players
+		p_text = buff.unpack_string()
+		self.factory.send_chat("<%s> %s" % (self.display_name, p_text))
+		log(f"<{self.display_name}> {p_text}")
 
 
-class MyBridge(Bridge):
-	def make_profile(self):
-		"""
-		Support online mode
-		"""
-
-		# follow: https://kqzz.github.io/mc-bearer-token/
-
-		accessToken = ini['HomuraMC']['token']
-
-		url = "https://api.minecraftservices.com/minecraft/profile"
-		headers = {'Authorization': 'Bearer ' + accessToken}
-		response = requests.request("GET", url, headers=headers)
-		result = response.json()
-		myUuid = UUID.from_hex(result['id'])
-		myUsername = result['name']
-		return auth.Profile('(skip)', accessToken, myUsername, myUuid)
-
-
-class MyDownstreamFactory(DownstreamFactory):
-	global ini
-	protocol = MyDownstream
-	bridge_class = MyBridge
+class HomuraServerFactory(ServerFactory):
+	protocol = HomuraServerProtocol
 	motd = ini["HomuraMC"]["motd"]
+
+	def send_chat(self, message):
+		for player in self.players:
+			player.send_packet("chat_message",player.buff_type.pack_chat(message) + player.buff_type.pack('B', 0) )
 	
 
 def main():
 
 	# Create factory
-	factory = MyDownstreamFactory()
+	factory = HomuraServerFactory()
 
 	# Listen
 	factory.listen(ini['HomuraMC']['server_ip'],int(ini['HomuraMC']['port']))
