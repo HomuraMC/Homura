@@ -1,12 +1,12 @@
 from twisted.internet import reactor
 from quarry.net.server import ServerFactory, ServerProtocol
 
-from lognk import log
-
 import configparser
 import sys
 import os
-from booltool import toBool
+
+from classes import toBool
+from classes import log
 
 HomuraMCVersion = "v0.0.1"
 HomuraMCConfigVersion = "1"
