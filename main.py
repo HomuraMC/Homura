@@ -9,15 +9,73 @@ import sys
 import os
 from booltool import toBool
 
+HomuraMCVersion = "v0.0.1"
+HomuraMCConfigVersion = "1"
+HomuraMCConfigVersionStr = "v0.0.1"
 
-ini = configparser.ConfigParser()
-ini['HomuraMC'] = {'server_ip': '0.0.0.0','port': 25565,'motd': 'A Minecraft Server','token': "<How To Token Get: https://kqzz.github.io/mc-bearer-token/>",'eula': False}
+defaultini = configparser.ConfigParser()
+defaultini['HomuraMC'] = {'config_version': HomuraMCConfigVersion,'server_ip': '0.0.0.0','port': 25565,'motd': 'A Minecraft Server','max_players': 20,'server_icon':"server_icon_path_here",'eula': False}
+
 if os.path.isfile("./Homura.ini") == False:
 	with open('Homura.ini', 'w') as configfile:
-		# 指定したconfigファイルを書き込み
+		defaultini.write(configfile)
+
+ini = configparser.ConfigParser()
+ini.read('./Homura.ini', 'UTF-8')
+isConfigVer = "config_version" in ini['HomuraMC']
+if (isConfigVer == False) or (ini['HomuraMC']["config_version"] != HomuraMCConfigVersion):
+	log(f"The configuration file (Homura.ini) is an outdated version! The configuration file is updated to {HomuraMCConfigVersionStr}...","[info]")
+
+	ini['HomuraMC']['config_version'] = HomuraMCConfigVersion
+	isserverip = "server_ip" in ini['HomuraMC']
+	if (isserverip == False):
+		ini['HomuraMC']['server_ip'] = defaultini['HomuraMC']['server_ip']
+	isport = "port" in ini['HomuraMC']
+	if (isport == False):
+		ini['HomuraMC']['port'] = defaultini['HomuraMC']['port']
+	ismotd = "motd" in ini['HomuraMC']
+	if (ismotd == False):
+		ini['HomuraMC']['motd'] = defaultini['HomuraMC']['motd']
+	ismaxplayers = "max_players" in ini['HomuraMC']
+	if (ismaxplayers == False):
+		ini['HomuraMC']['max_players'] = defaultini['HomuraMC']['max_players']
+	iseula = "eula" in ini['HomuraMC']
+	if (iseula == False):
+		ini['HomuraMC']['eula'] = defaultini['HomuraMC']['eula']
+	isservericon = "server_icon" in ini["HomuraMC"]
+	if (isservericon == False):
+		ini['HomuraMC']['server_icon'] = defaultini['HomuraMC']['eula']
+	with open('Homura.ini', 'w') as configfile:
+		ini.write(configfile)
+		log(f"The configuration file (Homura.ini) is Updated to {HomuraMCConfigVersionStr}!","[info]")
+else:
+	isserverip = "server_ip" in ini['HomuraMC']
+	if (isserverip == False):
+		ini['HomuraMC']['server_ip'] = defaultini['HomuraMC']['server_ip']
+		log('The value of server_ip, which for some reason was not there, has been corrected to {}.'.format(defaultini['HomuraMC']['server_ip'])+Fore.Reset,Fore.YELLOW+"[warn]")
+	isport = "port" in ini['HomuraMC']
+	if (isport == False):
+		ini['HomuraMC']['port'] = defaultini['HomuraMC']['port']
+		log('The value of port, which for some reason was not there, has been corrected to .'.format(defaultini['HomuraMC']['port'])+Fore.Reset,Fore.YELLOW+"[warn]")
+	ismotd = "motd" in ini['HomuraMC']
+	if (ismotd == False):
+		ini['HomuraMC']['motd'] = defaultini['HomuraMC']['motd']
+		log('The value of motd, which for some reason was not there, has been corrected to .'.format(defaultini['HomuraMC']['motd'])+Fore.Reset,Fore.YELLOW+"[warn]")
+	ismaxplayers = "max_players" in ini['HomuraMC']
+	if (ismaxplayers == False):
+		ini['HomuraMC']['max_players'] = defaultini['HomuraMC']['max_players']
+		log('The value of max_players, which for some reason was not there, has been corrected to .'.format(defaultini['HomuraMC']['max_players'])+Fore.Reset,Fore.YELLOW+"[warn]")
+	iseula = "eula" in ini['HomuraMC']
+	if (iseula == False):
+		ini['HomuraMC']['eula'] = defaultini['HomuraMC']['eula']
+		log('The value of eula, which for some reason was not there, has been corrected to .'.format(defaultini['HomuraMC']['eula'])+Fore.Reset,Fore.YELLOW+"[warn]")
+	isservericon = "server_icon" in ini["HomuraMC"]
+	if (isservericon == False):
+		ini['HomuraMC']['server_icon'] = defaultini['HomuraMC']['eula']
+		log('The value of server_icon, which for some reason was not there, has been corrected to .'.format(defaultini['HomuraMC']['server_icon'])+Fore.Reset,Fore.YELLOW+"[warn]")
+	with open('Homura.ini', 'w') as configfile:
 		ini.write(configfile)
 
-ini.read('./Homura.ini', 'UTF-8')
 if toBool(ini['HomuraMC']['eula']) != True:
 	log(Fore.RED + "You do not agree with the eula! The eula can be read at https://aka.ms/MinecraftEULA and to agree, set the eula to True in Homura.ini." + Fore.RESET,Fore.RED + "[error]" + Fore.RESET)
 	print("Press Key to Continue...")
@@ -26,10 +84,11 @@ if toBool(ini['HomuraMC']['eula']) != True:
 
 
 class HomuraServerProtocol(ServerProtocol):
+	global ini
 	def close(self = None,kmsg = None):
 		if (self != None) and (kmsg != None):
 			ServerProtocol.close(self,kmsg)
-			log(f"{Fore.RED}{self.display_name} is Kicked:{Fore.RESET} {kmsg}")
+			log(f"{Fore.RED}{self.display_name} is Kicked:{Fore.RESET} {kmsg}","[info]")
 		else:
 			ServerProtocol.close(self)
 	def player_joined(self):
@@ -43,6 +102,7 @@ class HomuraServerProtocol(ServerProtocol):
 			self.close("Outdated server! I'm still on 1.15.2")
 		elif self.protocol_version < 578:
 			self.close("Outdated client! I'm using 1.15.2")
+
 		self.send_packet("join_game",
 			self.buff_type.pack("iBqiB",
 				0,							  # entity id
@@ -98,17 +158,47 @@ class HomuraServerProtocol(ServerProtocol):
 		# When we receive a chat message from the player, ask the factory
 		# to relay it to all connected players
 		p_text = buff.unpack_string()
-		self.factory.send_chat("<%s> %s" % (self.display_name, p_text))
-		log(f"<{self.display_name}> {p_text}")
+		if p_text == "/list":
+			pltt = ""
+			pll = 0
+			pltt = self.factory.getPlayers()
+			pll = self.factory.getPlayersCount()
+			self.factory.send_msg(f"{pll} players online: {pltt}",self.display_name)
+		else:
+			self.factory.send_chat("<%s> %s" % (self.display_name, p_text))
+			log(f"<{self.display_name}> {p_text}")
 
 
 class HomuraServerFactory(ServerFactory):
 	protocol = HomuraServerProtocol
 	motd = ini["HomuraMC"]["motd"]
+	force_protocol_version = 578
+	max_players = int(ini["HomuraMC"]["max_players"])
+	if (ini["HomuraMC"]["server_icon"] == ""):
+		icon_path = None
+	elif os.path.isfile(ini["HomuraMC"]["server_icon"]) == False:
+		icon_path = None
+	else:
+		icon_path = ini["HomuraMC"]["server_icon"]
+
 
 	def send_chat(self, message):
 		for player in self.players:
 			player.send_packet("chat_message",player.buff_type.pack_chat(message) + player.buff_type.pack('B', 0) )
+			
+	def send_msg(self, message, name):
+		for player in self.players:
+			if player.display_name == name:
+				player.send_packet("chat_message",player.buff_type.pack_chat(message) + player.buff_type.pack('B', 0) )
+
+	def getPlayers(self):
+		pltt = ""
+		for player in self.players:
+			pltt = f"{pltt},{player.display_name}"
+		return pltt
+
+	def getPlayersCount(self):
+		return len(self.players)
 	
 
 def main():
@@ -122,5 +212,5 @@ def main():
 
 
 if __name__ == "__main__":
-	log("Homura v0.0.1 is Finished Loading!")
+	log(f"Homura {HomuraMCVersion} is Finished Loading!")
 	main()
