@@ -61,7 +61,6 @@ if (isConfigVer == False) or (
         ini.write(configfile)
         log.logger.info(
             f"The configuration file (Homura.ini) is Updated to {HomuraMCConfigVersionStr}!",
-            "[info]",
         )
 else:
     isserverip = "server_ip" in ini["HomuraMC"]
@@ -171,5 +170,5 @@ def main():
 
 
 if __name__ == "__main__":
-    log(f"Homura {HomuraMCVersion} is Finished Loading!")
+    log.logger.info(f"Homura {HomuraMCVersion} is Finished Loading!")
     main()

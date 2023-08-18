@@ -5,7 +5,7 @@ import sys
 # ログレベルごとに色を定義
 LOG_COLORS = {
     logging.DEBUG: "\033[94m",  # 青色
-    logging.INFO: "\033[0m",  # 緑色
+    logging.INFO: "\033[0m",  # 無色
     logging.WARNING: "\033[33m",  # 黄色
     logging.ERROR: "\033[31m",  # 赤色
     logging.CRITICAL: "\033[95m",  # 紫色

@@ -1,6 +1,12 @@
+import configparser
+
 from quarry.net.server import ServerProtocol
 
 from . import log
+
+ini = configparser.ConfigParser()
+ini.read("./Homura.ini", "UTF-8")
+
 
 class HomuraServerProtocol(ServerProtocol):
     global ini
@@ -8,9 +14,7 @@ class HomuraServerProtocol(ServerProtocol):
     def close(self=None, kmsg=None):
         if (self != None) and (kmsg != None):
             ServerProtocol.close(self, kmsg)
-            log(
-                f"{Fore.RED}{self.display_name} is Kicked:{Fore.RESET} {kmsg}", "[info]"
-            )
+            log.logger.warn(f"{self.display_name} is Kicked: {kmsg}")
         else:
             ServerProtocol.close(self)
 
@@ -20,7 +24,7 @@ class HomuraServerProtocol(ServerProtocol):
         ServerProtocol.player_joined(self)
 
         # Send "Join Game" packet
-        log(f"{self.display_name} is trying connect!")
+        log.logger.info(f"{self.display_name} is trying connect!")
         if self.protocol_version > 578:
             self.close("Outdated server! I'm still on 1.15.2")
         elif self.protocol_version < 578:
@@ -55,7 +59,7 @@ class HomuraServerProtocol(ServerProtocol):
 
         # Announce player joined
         self.factory.send_chat("\u00a7e%s has joined." % self.display_name)
-        log(f"{self.display_name} has joined.")
+        log.logger.info(f"\033[033m{self.display_name} has joined.\033[0m")
 
     def player_left(self):
         ServerProtocol.player_left(self)
@@ -89,4 +93,4 @@ class HomuraServerProtocol(ServerProtocol):
             self.factory.send_msg(f"{pll} players online: {pltt}", self.display_name)
         else:
             self.factory.send_chat("<%s> %s" % (self.display_name, p_text))
-            log(f"<{self.display_name}> {p_text}")
+            log.logger.info(f"<{self.display_name}> {p_text}")
