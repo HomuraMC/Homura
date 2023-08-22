@@ -2,7 +2,7 @@ import configparser
 
 from quarry.net.server import ServerProtocol
 
-from . import log
+from lognk import log
 
 ini = configparser.ConfigParser()
 ini.read("./Homura.ini", "UTF-8")
