@@ -61,6 +61,8 @@ class HomuraServerProtocol(ServerProtocol):
 		self.factory.send_chat("\u00a7e%s has joined." % self.display_name)
 		log.logger.info(f"\033[033m{self.display_name} has joined.\033[0m")
 
+		for plugin in plugins:
+			self.plugin.HomuraMCPlugin.onJoinPlayer()
 	def player_left(self):
 		ServerProtocol.player_left(self)
 

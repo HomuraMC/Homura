@@ -9,6 +9,8 @@ from classes import toBool
 from classes import log
 from classes import HomuraServerProtocol
 
+import importlib
+
 HomuraMCVersion = "v0.0.1"
 HomuraMCConfigVersion = "1"
 HomuraMCConfigVersionStr = "v0.0.1"
@@ -121,6 +123,25 @@ if toBool(ini["HomuraMC"]["eula"]) != True:
 	print("Press Key to Continue...")
 	input()
 	sys.exit()
+
+plugins = []
+for file in os.listdir("./plugins/"):
+	base, ext = os.path.splitext(file)
+	if ext == '.py':
+		log.logger.info(
+			"Python Script {} is loading...".format(file)
+		)
+		plpy = importlib.import_module('plugins.{}'.format(base))
+		isplugin = getattr(plpy,'HomuraMCPlugin',False)
+		if isplugin == False:
+			log.logger.warning(
+				"Python Script {} is Not HomuraMC Plugin!".format(file)
+			)
+		else:
+			plugins.append(plpy)
+			log.logger.info(
+				"Python Script {} is Loading Successful.".format(file)
+			)
 
 class HomuraServerFactory(ServerFactory):
 	protocol = HomuraServerProtocol
