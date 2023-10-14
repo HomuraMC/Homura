@@ -2,3 +2,4 @@ quarry
 datetime
 configparser
 colorama
+twisted
