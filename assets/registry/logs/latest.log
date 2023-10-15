@@ -1,0 +1,14 @@
+[15:49:18] [main/INFO]: Starting provider: Block List
+[15:49:23] [main/INFO]: Block List finished after 5713 ms
+[15:49:24] [main/INFO]: Starting provider: Registry Dump
+[15:49:24] [main/INFO]: Registry Dump finished after 416 ms
+[15:49:24] [main/INFO]: Starting provider: Command Syntax
+[15:49:28] [main/WARN]: Ambiguity between arguments [teleport, destination] and [teleport, targets] with inputs: [Player, 0123, @e, dd12be42-52a9-4a91-a8a1-11c01849e498]
+[15:49:28] [main/WARN]: Ambiguity between arguments [teleport, location] and [teleport, destination] with inputs: [0.1 -0.5 .9, 0 0 0]
+[15:49:28] [main/WARN]: Ambiguity between arguments [teleport, location] and [teleport, targets] with inputs: [0.1 -0.5 .9, 0 0 0]
+[15:49:28] [main/WARN]: Ambiguity between arguments [teleport, targets] and [teleport, destination] with inputs: [Player, 0123, dd12be42-52a9-4a91-a8a1-11c01849e498]
+[15:49:28] [main/WARN]: Ambiguity between arguments [teleport, targets, location] and [teleport, targets, destination] with inputs: [0.1 -0.5 .9, 0 0 0]
+[15:49:29] [main/INFO]: Command Syntax finished after 4667 ms
+[15:49:29] [main/INFO]: Starting provider: Biomes
+[15:49:36] [main/INFO]: Biomes finished after 6380 ms
+[15:49:36] [main/INFO]: All providers took: 18056 ms

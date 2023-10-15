@@ -1,0 +1,6 @@
+datetime
+configparser
+colorama
+twisted
+certifi
+bitarray
