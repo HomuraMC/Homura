@@ -24,7 +24,10 @@ If you have created a virtual environment, access Python in the virtual environm
 ```
 Next, use pip to install the libraries required by Homura.
 ```
+# Windows
 pip install -r requirements.txt
+# Other
+python3 -m pip install -r requirements.txt
 ```
 After installation, you can start the server by running the following command.
 ```
