@@ -34,6 +34,7 @@ After installation, you can start the server by running the following command.
 python3 main.py
 ```
 
+## Trouble Shooting
 ### how to fix "[WinError 2] The system cannot find the file specified"
 Java (JDK) is required to use the Vanilla jar for world generation.
 [Install Java(JDK) from here. ( https://www.oracle.com/java/technologies/downloads/ )](https://www.oracle.com/java/technologies/downloads/)
