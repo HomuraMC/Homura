@@ -24,7 +24,7 @@ class HomuraServerProtocol(ServerProtocol):
 		"MOTION_BLOCKING": TagLongArray(PackedArray.empty_height())
 	})})
 
-	registry = LookupRegistry.from_jar(os.path.join(os.getcwd(), "assets", "registry", "server.jar"))
+	builtins.registry = LookupRegistry.from_jar(os.path.join(os.getcwd(), "assets", "registry", "server.jar"))
 
 	class chunk:
 		x = 0
@@ -54,7 +54,9 @@ class HomuraServerProtocol(ServerProtocol):
 			self.buff_type.pack("dddff?",
 				8, 200, 8, 0, 90, 0b00000),
 			self.buff_type.pack_varint(0))
-		
+		builtins.sent_chunks[f'{self.display_name}'] = False
+		builtins.counter[f'{self.display_name}'] = 0
+
 		self.ticker.add_loop(20, self.update_keep_alive)
 		self.ticker.add_loop(1, self.send_next_from_queue)
 
@@ -81,21 +83,21 @@ class HomuraServerProtocol(ServerProtocol):
 
 	def player_left(self):
 		ServerProtocol.player_left(self)
+		del builtins.counter[f'{self.display_name}']
+		del builtins.sent_chunks[f'{self.display_name}']
 
 	def update_keep_alive(self):
-		global sent_chunks, counter
-
 		self.send_packet("keep_alive", self.buff_type.pack("Q", 0))
 
-		if not sent_chunks:
-			if counter == 0:
+		if not builtins.sent_chunks[f'{self.display_name}']:
+			if builtins.counter[f'{self.display_name}'] == 0:
 				self.send_empty_full(4)
-			if counter == 10:
+			if builtins.counter[f'{self.display_name}'] == 10:
 				self.send_perimiter(2)
-			if counter == 20:
+			if builtins.counter[f'{self.display_name}'] == 20:
 				self.send_perimiter(0)
 			
-			counter += 1
+			builtins.counter[f'{self.display_name}'] += 1
 
 	def send_next_from_queue(self):
 		if len(builtins.queue) == 0: return

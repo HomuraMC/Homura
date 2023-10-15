@@ -129,15 +129,15 @@ if toBool(ini["HomuraMC"]["eula"]) != True:
 	input()
 	sys.exit()
 
-builtins.sent_chunks = False
-builtins.counter = 0
+builtins.sent_chunks = {}
+builtins.counter = {}
 
 builtins.loaded_regions = {}
 builtins.loaded_chunks = {}
 
 builtins.queue = []
 
-print("Loading spawn chunks, please wait...")
+log.logger.info("Loading spawn chunks, please wait...")
 
 for x in range(-10, 11):
 	for z in range(-10, 11):
@@ -163,12 +163,12 @@ for x in range(-10, 11):
 		except OSError as e:
 			continue
 
-print("Spawn chunks succesfully loaded!")
+log.logger.info("Spawn chunks succesfully loaded!")
 
 class HomuraServerFactory(ServerFactory):
 	protocol = HomuraServerProtocol
 	motd = ini["HomuraMC"]["motd"]
-	force_protocol_version = 578
+	force_protocol_version = 754
 	max_players = int(ini["HomuraMC"]["max_players"])
 	if ini["HomuraMC"]["server_icon"] == "":
 		icon_path = None
@@ -195,7 +195,7 @@ class HomuraServerFactory(ServerFactory):
 	def getPlayers(self):
 		pltt = ""
 		for player in self.players:
-			pltt = f"{self.players}"
+			pltt = f"{player.display_name},"
 		return pltt
 
 	def getPlayersCount(self):
