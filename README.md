@@ -40,7 +40,7 @@ Java (JDK) is required to use the Vanilla jar for world generation.
 Check that the IP address (leave 0.0.0.0) and port (default is 25565) in the Homura.ini file match and that the port is open. If you absolutely cannot get the port open, you can use [playit( https://playit.gg )](https://playit.gg/).
 
 ### I need help with something not mentioned here
-(Issues)[https://github.com/HomuraMC/Homura/issues] or [Discord](https://discord.gg/967gvTTEWc).
+[Issues](https://github.com/HomuraMC/Homura/issues) or [Discord](https://discord.gg/967gvTTEWc).
 
 ## Special Thanks
 - [https://qiita.com/YuzuRyo61/items/da7a6e55616254eb63d7](https://qiita.com/YuzuRyo61/items/da7a6e55616254eb63d7)
