@@ -59,15 +59,18 @@ class HomuraServerProtocol(ServerProtocol):
 		# Start sending "Keep Alive" packets
 		self.ticker.add_loop(20, self.update_keep_alive)
 
+		for plugin in builtins.plugins:
+			if getattr(plugin.HomuraMCPlugin,'onJoinPlayer',False) != False:
+				plugin.HomuraMCPlugin.onJoinPlayer(self)
 		# Announce player joined
 		self.factory.send_chat("\u00a7e%s has joined." % self.display_name)
 		log.logger.info(f"\033[033m{self.display_name} has joined.\033[0m")
-
-		for plugin in builtins.plugins:
-			plugin.HomuraMCPlugin.onJoinPlayer(self)
 	def player_left(self):
 		ServerProtocol.player_left(self)
 
+		for plugin in builtins.plugins:
+			if getattr(plugin.HomuraMCPlugin,'onQuitPlayer',False) != False:
+				plugin.HomuraMCPlugin.onQuitPlayer(self)
 		# Announce player left
 		self.factory.send_chat("\u00a7e%s has left." % self.display_name)
 		log(f"{self.display_name} has left.")
@@ -88,6 +91,9 @@ class HomuraServerProtocol(ServerProtocol):
 	def packet_chat_message(self, buff):
 		# When we receive a chat message from the player, ask the factory
 		# to relay it to all connected players
+		for plugin in builtins.plugins:
+			if getattr(plugin.HomuraMCPlugin,'onChat',False) != False:
+				plugin.HomuraMCPlugin.onChat(self)
 		p_text = buff.unpack_string()
 		if p_text == "/list":
 			pltt = ""

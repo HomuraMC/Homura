@@ -155,7 +155,7 @@ class HomuraServerFactory(ServerFactory):
 	def getPlayers(self):
 		pltt = ""
 		for player in self.players:
-			pltt = f"{pltt},{player.display_name}"
+			pltt = f"{self.players}"
 		return pltt
 
 	def getPlayersCount(self):
@@ -190,5 +190,7 @@ if __name__ == "__main__":
 				log.logger.info(
 					"Python Script {} is Loading Successful.".format(file)
 				)
+				if getattr(plpy.HomuraMCPlugin,'onReady',False) != False:
+					plpy.HomuraMCPlugin.onReady()
 	log.logger.info(f"Homura {HomuraMCVersion} is Finished Loading!")
 	main()
