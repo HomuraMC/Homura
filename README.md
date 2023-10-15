@@ -2,7 +2,7 @@
 HomuraMC is Open Source Minecraft Server Software written in Python.  
 [Join Our Discord](https://discord.gg/967gvTTEWc)
 ## How To (Server Admins)
-**Note: Homura is a pre-alpha version with most features not yet implemented! We recommend that you do not use it in a production environment. **
+##### Note: Homura is a pre-alpha version with most features not yet implemented! We recommend that you do not use it in a production environment. 
 ### Require
 * Python3
 * Java16 (Homura uses vanilla jar for chunk sending)
