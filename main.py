@@ -129,6 +129,27 @@ if toBool(ini["HomuraMC"]["eula"]) != True:
 	input()
 	sys.exit()
 
+builtins.plugins = []
+for file in os.listdir("./plugins/"):
+	base, ext = os.path.splitext(file)
+	if ext == '.py':
+		log.logger.info(
+			"Python Script {} is loading...".format(file)
+		)
+		plpy = importlib.import_module('plugins.{}'.format(base))
+		isplugin = getattr(plpy,'HomuraMCPlugin',False)
+		if isplugin == False:
+			log.logger.warning(
+				"Python Script {} is Not HomuraMC Plugin!".format(file)
+			)
+		else:
+			builtins.plugins.append(plpy)
+			log.logger.info(
+				"Python Script {} is Loading Successful.".format(file)
+			)
+			if getattr(plpy.HomuraMCPlugin,'onLoad',False) != False:
+				plpy.HomuraMCPlugin.onLoad()
+
 builtins.sent_chunks = {}
 builtins.counter = {}
 
@@ -164,6 +185,9 @@ for x in range(-10, 11):
 			continue
 
 log.logger.info("Spawn chunks succesfully loaded!")
+for plugin in builtins.plugins:
+	if getattr(plugin.HomuraMCPlugin,'onSpawnChunkLoad',False) != False:
+		plugin.HomuraMCPlugin.onSpawnChunkLoad()
 
 class HomuraServerFactory(ServerFactory):
 	protocol = HomuraServerProtocol
@@ -207,30 +231,10 @@ def main():
 	factory = HomuraServerFactory()
 
 	# Listen
+	log.logger.info(f"Homura {HomuraMCVersion} is Finished Loading!")
 	factory.listen(ini["HomuraMC"]["server_ip"], int(ini["HomuraMC"]["port"]))
 	reactor.run()
 
 
 if __name__ == "__main__":
-	builtins.plugins = []
-	for file in os.listdir("./plugins/"):
-		base, ext = os.path.splitext(file)
-		if ext == '.py':
-			log.logger.info(
-				"Python Script {} is loading...".format(file)
-			)
-			plpy = importlib.import_module('plugins.{}'.format(base))
-			isplugin = getattr(plpy,'HomuraMCPlugin',False)
-			if isplugin == False:
-				log.logger.warning(
-					"Python Script {} is Not HomuraMC Plugin!".format(file)
-				)
-			else:
-				builtins.plugins.append(plpy)
-				log.logger.info(
-					"Python Script {} is Loading Successful.".format(file)
-				)
-				if getattr(plpy.HomuraMCPlugin,'onReady',False) != False:
-					plpy.HomuraMCPlugin.onReady()
-	log.logger.info(f"Homura {HomuraMCVersion} is Finished Loading!")
 	main()

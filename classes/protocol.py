@@ -60,6 +60,13 @@ class HomuraServerProtocol(ServerProtocol):
 		self.ticker.add_loop(20, self.update_keep_alive)
 		self.ticker.add_loop(1, self.send_next_from_queue)
 
+		for plugin in builtins.plugins:
+			if getattr(plugin.HomuraMCPlugin,'onJoinPlayer',False) != False:
+				plugin.HomuraMCPlugin.onJoinPlayer(self)
+		# Announce player left
+		self.factory.send_chat("\u00a7e%s has joined." % self.display_name)
+		log.logger.info(f"\033[033m{self.display_name} has joined.\033[0m")
+
 	def send_perimiter(self, size, thread=True):
 		for x in range(-size, size + 1):
 			for z in range(-size, size + 1):
@@ -85,6 +92,13 @@ class HomuraServerProtocol(ServerProtocol):
 		ServerProtocol.player_left(self)
 		del builtins.counter[f'{self.display_name}']
 		del builtins.sent_chunks[f'{self.display_name}']
+		for plugin in builtins.plugins:
+			if getattr(plugin.HomuraMCPlugin,'onQuitPlayer',False) != False:
+				plugin.HomuraMCPlugin.onQuitPlayer(self)
+		# Announce player left
+		self.factory.send_chat("\u00a7e%s has left." % self.display_name)
+		log.logger.info(f"{self.display_name} has left.")
+
 
 	def update_keep_alive(self):
 		self.send_packet("keep_alive", self.buff_type.pack("Q", 0))
@@ -98,12 +112,19 @@ class HomuraServerProtocol(ServerProtocol):
 				self.send_perimiter(0)
 			
 			builtins.counter[f'{self.display_name}'] += 1
+		for plugin in builtins.plugins:
+			if getattr(plugin.HomuraMCPlugin,'onKeepAlive',False) != False:
+				plugin.HomuraMCPlugin.onKeepAlive(self)
 
 	def send_next_from_queue(self):
 		if len(builtins.queue) == 0: return
 
 		x, z, full, heightmap, sections, biomes, block_entities = builtins.queue.pop()
 		self.send_chunk(x, z, full, heightmap, sections, biomes, block_entities)
+		
+		for plugin in builtins.plugins:
+			if getattr(plugin.HomuraMCPlugin,'onTick',False) != False:
+				plugin.HomuraMCPlugin.onTick(self)
 
 	def send_chunk(self, x, z, full, heightmap, sections, biomes, block_entities):
 		sections_data = self.buff_type.pack_chunk(sections)
@@ -174,12 +195,18 @@ class HomuraServerProtocol(ServerProtocol):
 
 		self.chunk.x = math.floor(self.player.x / 16)
 		self.chunk.z = math.floor(self.player.z / 16)
+		for plugin in builtins.plugins:
+			if getattr(plugin.HomuraMCPlugin,'onUpdateChunks',False) != False:
+				plugin.HomuraMCPlugin.onUpdateChunks(self)
 
 	def packet_player_position_and_look(self, buff):
 		x, y, z, ry, rp, flag = buff.unpack('dddff?')
 
 		self.player.x = x
 		self.player.z = z
+		for plugin in builtins.plugins:
+			if getattr(plugin.HomuraMCPlugin,'onPlayerMove',False) != False:
+				plugin.HomuraMCPlugin.onPlayerMove(self)
 
 	def packet_chat_message(self, buff):
 		# When we receive a chat message from the player, ask the factory
