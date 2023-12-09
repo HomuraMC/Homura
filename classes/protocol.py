@@ -4,6 +4,7 @@ from quarry.net.server import ServerProtocol
 from quarry.data.data_packs import data_packs, dimension_types
 from quarry.types.nbt import RegionFile, TagCompound, TagLongArray, TagRoot
 from quarry.types.chunk import BlockArray, PackedArray
+from quarry.net.protocol import Protocol
 from quarry.types.registry import LookupRegistry
 import math, os
 
@@ -34,6 +35,10 @@ class HomuraServerProtocol(ServerProtocol):
 		x = 0
 		z = 0
 
+	def packet_login_start(self, buff):
+		ServerProtocol.packet_login_start(self, buff)
+		log.logger.info(f"{self.display_name} is trying connect!")
+
 	def player_joined(self):
 		ServerProtocol.player_joined(self)
 
@@ -54,18 +59,19 @@ class HomuraServerProtocol(ServerProtocol):
 			self.buff_type.pack("dddff?",
 				8, 200, 8, 0, 90, 0b00000),
 			self.buff_type.pack_varint(0))
-		builtins.sent_chunks[f'{self.display_name}'] = False
-		builtins.counter[f'{self.display_name}'] = 0
+		builtins.sent_chunks[f'{self.uuid}'] = False
+		builtins.counter[f'{self.uuid}'] = 0
+		builtins.queue[f'{self.uuid}'] = []
 
 		self.ticker.add_loop(20, self.update_keep_alive)
-		self.ticker.add_loop(1, self.send_next_from_queue)
+		self.ticker.add_loop(1, self.send_next_from_queue)	
 
 		for plugin in builtins.plugins:
 			if getattr(plugin.HomuraMCPlugin,'onJoinPlayer',False) != False:
 				plugin.HomuraMCPlugin.onJoinPlayer(self)
 		# Announce player left
 		self.factory.send_chat("\u00a7e%s has joined." % self.display_name)
-		log.logger.info(f"\033[033m{self.display_name} has joined.\033[0m")
+		#log.logger.info(f"\033[033m{self.display_name} has joined.\033[0m")
 
 	def send_perimiter(self, size, thread=True):
 		for x in range(-size, size + 1):
@@ -80,46 +86,47 @@ class HomuraServerProtocol(ServerProtocol):
 		for x in range(-size, size + 1):
 			for z in range(-size, size + 1):
 				if x == -size or x == size or z == -size or z == size:
-					builtins.queue.append([x, z, True, builtins.emptyHeight, [None]*16, [1]*256, []])
+					builtins.queue[f'{self.uuid}'].append([x, z, True, builtins.emptyHeight, [None]*16, [1]*256, []])
 
 	def send_empty_full(self, size):
 		for x in range(-size, size + 1):
 			for z in range(-size, size + 1):
 				if x == 0 and z == 0: continue
-				builtins.queue.append([x, z, True, builtins.emptyHeight, [None]*16, [1]*256, []])
+				builtins.queue[f'{self.uuid}'].append([x, z, True, builtins.emptyHeight, [None]*16, [1]*256, []])
 
 	def player_left(self):
 		ServerProtocol.player_left(self)
-		del builtins.counter[f'{self.display_name}']
-		del builtins.sent_chunks[f'{self.display_name}']
+		del builtins.counter[f'{self.uuid}']
+		del builtins.sent_chunks[f'{self.uuid}']
+		del builtins.queue[f'{self.uuid}']
 		for plugin in builtins.plugins:
 			if getattr(plugin.HomuraMCPlugin,'onQuitPlayer',False) != False:
 				plugin.HomuraMCPlugin.onQuitPlayer(self)
 		# Announce player left
 		self.factory.send_chat("\u00a7e%s has left." % self.display_name)
-		log.logger.info(f"{self.display_name} has left.")
+		#log.logger.info(f"{self.display_name} has left.")
 
 
 	def update_keep_alive(self):
 		self.send_packet("keep_alive", self.buff_type.pack("Q", 0))
 
-		if not builtins.sent_chunks[f'{self.display_name}']:
-			if builtins.counter[f'{self.display_name}'] == 0:
+		if not builtins.sent_chunks[f'{self.uuid}']:
+			if builtins.counter[f'{self.uuid}'] == 0:
 				self.send_empty_full(4)
-			if builtins.counter[f'{self.display_name}'] == 10:
+			if builtins.counter[f'{self.uuid}'] == 10:
 				self.send_perimiter(2)
-			if builtins.counter[f'{self.display_name}'] == 20:
+			if builtins.counter[f'{self.uuid}'] == 20:
 				self.send_perimiter(0)
 			
-			builtins.counter[f'{self.display_name}'] += 1
+			builtins.counter[f'{self.uuid}'] += 1
 		for plugin in builtins.plugins:
 			if getattr(plugin.HomuraMCPlugin,'onKeepAlive',False) != False:
 				plugin.HomuraMCPlugin.onKeepAlive(self)
 
 	def send_next_from_queue(self):
-		if len(builtins.queue) == 0: return
+		if len(builtins.queue[f'{self.uuid}']) == 0: return
 
-		x, z, full, heightmap, sections, biomes, block_entities = builtins.queue.pop()
+		x, z, full, heightmap, sections, biomes, block_entities = builtins.queue[f'{self.uuid}'].pop()
 		self.send_chunk(x, z, full, heightmap, sections, biomes, block_entities)
 		
 		for plugin in builtins.plugins:
@@ -185,7 +192,7 @@ class HomuraServerProtocol(ServerProtocol):
 		block_entities = chunk["TileEntities"].value
 		biomes = [biome for biome in biomes]
 
-		builtins.queue.append([px, pz, True, heightmap, sections, biomes, block_entities])
+		builtins.queue[f'{self.uuid}'].append([px, pz, True, heightmap, sections, biomes, block_entities])
 
 	def update_chunks(self):
 		if math.floor(self.player.x / 16) == self.chunk.x and math.floor(self.player.z / 16) == self.chunk.z:
@@ -220,7 +227,19 @@ class HomuraServerProtocol(ServerProtocol):
 			pll = 0
 			pltt = self.factory.getPlayers()
 			pll = self.factory.getPlayersCount()
-			self.factory.send_msg(f"{pll} players online: {pltt}", self.display_name)
+			self.factory.send_msg(f"{pll} players online: {pltt}", self.uuid)
+		elif p_text == "/chest":
+			self.send_packet('open_window',
+					self.buff_type.pack_varint(1),
+					self.buff_type.pack_varint(5),
+					self.buff_type.pack_chat("large chest")
+				)
 		else:
 			self.factory.send_chat("<%s> %s" % (self.display_name, p_text))
 			log.logger.info(f"<{self.display_name}> {p_text}")
+
+	def packet_plugin_message(self, buff):
+		p_channel_name = buff.unpack_string()
+		p_channel_data = buff.read()
+		# do something with the message
+		log.logger.info(f"{self.display_name} pm> {p_channel_name}")

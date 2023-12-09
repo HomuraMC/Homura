@@ -147,8 +147,6 @@ for file in os.listdir("./plugins/"):
 			log.logger.info(
 				"Python Script {} is Loading Successful.".format(file)
 			)
-			if getattr(plpy.HomuraMCPlugin,'onLoad',False) != False:
-				plpy.HomuraMCPlugin.onLoad()
 
 builtins.sent_chunks = {}
 builtins.counter = {}
@@ -156,7 +154,7 @@ builtins.counter = {}
 builtins.loaded_regions = {}
 builtins.loaded_chunks = {}
 
-builtins.queue = []
+builtins.queue = {}
 
 log.logger.info("Loading spawn chunks, please wait...")
 
@@ -186,8 +184,8 @@ for x in range(-10, 11):
 
 log.logger.info("Spawn chunks succesfully loaded!")
 for plugin in builtins.plugins:
-	if getattr(plugin.HomuraMCPlugin,'onSpawnChunkLoad',False) != False:
-		plugin.HomuraMCPlugin.onSpawnChunkLoad()
+	if getattr(plugin.HomuraMCPlugin,'onLoad',False) != False:
+		plugin.HomuraMCPlugin.onLoad()
 
 class HomuraServerFactory(ServerFactory):
 	protocol = HomuraServerProtocol
@@ -208,9 +206,9 @@ class HomuraServerFactory(ServerFactory):
 				player.buff_type.pack_chat(message) + player.buff_type.pack("B", 0) + player.buff_type.pack_uuid(player.uuid),
 			)
 
-	def send_msg(self, message, name):
+	def send_msg(self, message, uuid):
 		for player in self.players:
-			if player.display_name == name:
+			if player.uuid == uuid:
 				player.send_packet(
 					"chat_message",
 					player.buff_type.pack_chat(message) + player.buff_type.pack("B", 0) + player.buff_type.pack_uuid(player.uuid),
