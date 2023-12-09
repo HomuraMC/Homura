@@ -1,17 +1,16 @@
 import configparser
+import os
+import math
+import builtins
 
 from quarry.net.server import ServerProtocol
 from quarry.data.data_packs import data_packs, dimension_types
 from quarry.types.nbt import RegionFile, TagCompound, TagLongArray, TagRoot
 from quarry.types.chunk import BlockArray, PackedArray
 from quarry.types.registry import LookupRegistry
-import math, os
-
 from twisted.internet import reactor
 
-from lognk import log
-
-import builtins
+from .lognk import log
 
 ini = configparser.ConfigParser()
 ini.read("./Homura.ini", "UTF-8")
