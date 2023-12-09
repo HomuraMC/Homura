@@ -170,7 +170,7 @@ builtins.counter = {}
 builtins.loaded_regions = {}
 builtins.loaded_chunks = {}
 
-builtins.queue = []
+builtins.queue = {}
 
 logger.info("Loading spawn chunks, please wait...")
 
@@ -206,50 +206,44 @@ for x in range(-10, 11):
 
 logger.info("Spawn chunks succesfully loaded!")
 for plugin in builtins.plugins:
-    if getattr(plugin.HomuraMCPlugin, "onSpawnChunkLoad", False) != False:
-        plugin.HomuraMCPlugin.onSpawnChunkLoad()
-
+	if getattr(plugin.HomuraMCPlugin,'onLoad',False) != False:
+		plugin.HomuraMCPlugin.onLoad()
 
 class HomuraServerFactory(ServerFactory):
-    protocol = HomuraServerProtocol
-    motd = ini["HomuraMC"]["motd"]
-    force_protocol_version = 754
-    max_players = int(ini["HomuraMC"]["max_players"])
-    if ini["HomuraMC"]["server_icon"] == "":
-        icon_path = None
-    elif os.path.isfile(ini["HomuraMC"]["server_icon"]) == False:
-        icon_path = None
-    else:
-        icon_path = ini["HomuraMC"]["server_icon"]
+	protocol = HomuraServerProtocol
+	motd = ini["HomuraMC"]["motd"]
+	force_protocol_version = 754
+	max_players = int(ini["HomuraMC"]["max_players"])
+	if ini["HomuraMC"]["server_icon"] == "":
+		icon_path = None
+	elif os.path.isfile(ini["HomuraMC"]["server_icon"]) == False:
+		icon_path = None
+	else:
+		icon_path = ini["HomuraMC"]["server_icon"]
 
-    def send_chat(self, message):
-        for player in self.players:
-            player.send_packet(
-                "chat_message",
-                player.buff_type.pack_chat(message)
-                + player.buff_type.pack("B", 0)
-                + player.buff_type.pack_uuid(player.uuid),
-            )
+	def send_chat(self, message):
+		for player in self.players:
+			player.send_packet(
+				"chat_message",
+				player.buff_type.pack_chat(message) + player.buff_type.pack("B", 0) + player.buff_type.pack_uuid(player.uuid),
+			)
 
-    def send_msg(self, message, name):
-        for player in self.players:
-            if player.display_name == name:
-                player.send_packet(
-                    "chat_message",
-                    player.buff_type.pack_chat(message)
-                    + player.buff_type.pack("B", 0)
-                    + player.buff_type.pack_uuid(player.uuid),
-                )
+	def send_msg(self, message, uuid):
+		for player in self.players:
+			if player.uuid == uuid:
+				player.send_packet(
+					"chat_message",
+					player.buff_type.pack_chat(message) + player.buff_type.pack("B", 0) + player.buff_type.pack_uuid(player.uuid),
+				)
 
-    def getPlayers(self):
-        pltt = ""
-        for player in self.players:
-            pltt = f"{player.display_name},"
-        return pltt
+	def getPlayers(self):
+		pltt = ""
+		for player in self.players:
+			pltt = f"{player.display_name},"
+		return pltt
 
-    def getPlayersCount(self):
-        return len(self.players)
-
+	def getPlayersCount(self):
+		return len(self.players)
 
 def main():
     # Create factory
