@@ -6,3 +6,5 @@ certifi
 bitarray
 cryptography
 cached_property
+tqdm
+requests
