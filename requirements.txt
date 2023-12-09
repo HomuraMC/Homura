@@ -1,5 +1,6 @@
-quarry
 datetime
 configparser
 colorama
 twisted
+certifi
+bitarray

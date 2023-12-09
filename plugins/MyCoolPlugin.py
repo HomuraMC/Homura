@@ -2,7 +2,7 @@ from classes import HomuraServerProtocol
 
 class HomuraMCPlugin():
 	@staticmethod
-	def onStart(self):
+	def onReady():
 		print("aa")
 	@staticmethod
 	def onJoinPlayer(self):
