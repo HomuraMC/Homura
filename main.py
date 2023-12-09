@@ -42,9 +42,9 @@ if not os.path.isfile(os.path.join(os.path.dirname(__file__), "Homura.ini")):
 
 if not os.path.exists(os.path.join(os.path.dirname(__file__), "assets/java")):
     logger.warning("Java16 not found. downloading...")
-    logger.warning(
-        "Homura cannot determine CPU architecture. Therefore, if the wrong java is downloaded, please download java again from setup.py."
-    )
+    # logger.warning(
+    #     "Homura cannot determine CPU architecture. Therefore, if the wrong java is downloaded, please download java again from setup.py."
+    # )
     download_jdk()
     logger.info("Download of server jar has been completed.")
 
