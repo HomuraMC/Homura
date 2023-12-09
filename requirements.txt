@@ -4,3 +4,5 @@ colorama
 twisted
 certifi
 bitarray
+cryptography
+cached_property
