@@ -13,6 +13,8 @@ from twisted.internet import reactor
 from . import log
 
 import builtins
+import importlib
+import struct
 
 ini = configparser.ConfigParser()
 ini.read("./Homura.ini", "UTF-8")
@@ -66,11 +68,31 @@ class HomuraServerProtocol(ServerProtocol):
 		self.ticker.add_loop(20, self.update_keep_alive)
 		self.ticker.add_loop(1, self.send_next_from_queue)	
 
+		self.send_packet("player_info",
+			self.buff_type.pack_varint(0),
+			self.buff_type.pack_varint(1),
+			self.buff_type.pack_uuid(self.uuid),
+
+			self.buff_type.pack_string(self.display_name),
+			self.buff_type.pack_varint(4),
+			
+			self.buff_type.pack_string("textures"),
+			self.buff_type.pack_string("ewogICJ0aW1lc3RhbXAiIDogMTcwMjEyMzg4OTEyMCwKICAicHJvZmlsZUlkIiA6ICI1ODVjNWYzMjQwMjE0ZDc4OWU5MzAyZjEzYjVlMDI3MiIsCiAgInByb2ZpbGVOYW1lIiA6ICJuZW5ubmVrbzU3ODciLAogICJ0ZXh0dXJlcyIgOiB7CiAgICAiU0tJTiIgOiB7CiAgICAgICJ1cmwiIDogImh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZDkxZDFmMzk3MWQxYzcyZDZjODAyNWJkMmJhOTYyM2YyNTY4ZTg4NWM2N2QwNjIzZGUwMmIyOTVhM2Q1OTI2YiIsCiAgICAgICJtZXRhZGF0YSIgOiB7CiAgICAgICAgIm1vZGVsIiA6ICJzbGltIgogICAgICB9CiAgICB9CiAgfQp9"),
+			self.buff_type.pack("?",True),
+			self.buff_type.pack_string("ZUGZvIdFgGhH9H2Rl0/ghfG6EJ7uc+COSYcJUi2+4Cus56dn1pdfwgzixsbhUBI1GEyxtAqhaSKy4dCfshWVG8lESm+BkXaQWdLdbnGv1+0cXQIglGjZrof35E5QziWcDLJRGr61Nxsqtf17bzBcKY5ssbdonzH9W5SmBc/Az0MKTbim0Bw50rpssQ0i5mde0uE4FEgip/uGuaEdBx3kd72Qod8pspYfPG0HQDbhFcvSl/GYb/2Jsb0pYE300Y9lmZrjeInqxLJBfKeK2e8HBOXn6gp8UBBn0zFpkKBjxXQEJ0rvBnLJxGEPEJo3rUVbD7/m4JU7OciwFkOga/qvP2ySIGZueQmZheABbKWOhNUWA62YceeWpfn+OlWizd3v+HD7U2XCO+bFZsws1wnH2BHuf4IpN3GXM0C7tRt6NJad0vO7dHg6HoOR7O7O0nRkS7hPXL2gLcVoEPwtEraF6aMG+9dY31eL5cQ8PiYWBx3gROIg2x62SjdJEy2pBwAn4i+0J2/UwgptHilFH3JHYyq7waNmYpiwOubnydDmAkQZcnXxRqtIQCwc9CT5mvXZGGqX4Ryvq/z4N/32S3UIeLWodpAxmyzZKd27FgMp0c2kJymQ2IlXQF8S3xUMziWeX5GeFx7mAftoW3IfU4DuyHpnRKBuVSQqanwYWID7mOw="),
+
+			self.buff_type.pack_varint(2),
+			self.buff_type.pack_varint(0),
+			self.buff_type.pack("?",True),
+			self.buff_type.pack_chat(self.display_name)
+		)
+
+		joinMessage = "\u00a7e%s has joined."
 		for plugin in builtins.plugins:
 			if getattr(plugin.HomuraMCPlugin,'onJoinPlayer',False) != False:
-				plugin.HomuraMCPlugin.onJoinPlayer(self)
-		# Announce player left
-		self.factory.send_chat("\u00a7e%s has joined." % self.display_name)
+				joinMessage = plugin.HomuraMCPlugin.onJoinPlayer(self)
+		# Announce player join
+		self.factory.send_chat(joinMessage % self.display_name)
 		#log.logger.info(f"\033[033m{self.display_name} has joined.\033[0m")
 
 	def send_perimiter(self, size, thread=True):
@@ -99,11 +121,12 @@ class HomuraServerProtocol(ServerProtocol):
 		del builtins.counter[f'{self.uuid}']
 		del builtins.sent_chunks[f'{self.uuid}']
 		del builtins.queue[f'{self.uuid}']
+		quitMessage = "\u00a7e%s has joined."
 		for plugin in builtins.plugins:
 			if getattr(plugin.HomuraMCPlugin,'onQuitPlayer',False) != False:
-				plugin.HomuraMCPlugin.onQuitPlayer(self)
+				quitMessage = plugin.HomuraMCPlugin.onQuitPlayer(self)
 		# Announce player left
-		self.factory.send_chat("\u00a7e%s has left." % self.display_name)
+		self.factory.send_chat(quitMessage % self.display_name)
 		#log.logger.info(f"{self.display_name} has left.")
 
 
@@ -218,10 +241,10 @@ class HomuraServerProtocol(ServerProtocol):
 	def packet_chat_message(self, buff):
 		# When we receive a chat message from the player, ask the factory
 		# to relay it to all connected players
+		p_text = buff.unpack_string()
 		for plugin in builtins.plugins:
 			if getattr(plugin.HomuraMCPlugin,'onChat',False) != False:
-				plugin.HomuraMCPlugin.onChat(self)
-		p_text = buff.unpack_string()
+				plugin.HomuraMCPlugin.onChat(self,p_text)
 		if p_text == "/list":
 			pltt = ""
 			pll = 0
@@ -234,6 +257,27 @@ class HomuraServerProtocol(ServerProtocol):
 					self.buff_type.pack_varint(5),
 					self.buff_type.pack_chat("large chest")
 				)
+		elif p_text == "/reloadplugins":
+			self.factory.send_msg(f"Reloading Plugins...", self.display_name)
+			builtins.plugins = []
+			for file in os.listdir("./plugins/"):
+				base, ext = os.path.splitext(file)
+				if ext == '.py':
+					log.logger.info(
+						"Python Script {} is loading...".format(file)
+					)
+					plpy = importlib.import_module('plugins.{}'.format(base))
+					isplugin = getattr(plpy,'HomuraMCPlugin',False)
+					if isplugin == False:
+						log.logger.warning(
+							"Python Script {} is Not HomuraMC Plugin!".format(file)
+						)
+					else:
+						builtins.plugins.append(plpy)
+						log.logger.info(
+							"Python Script {} is Loading Successful.".format(file)
+						)
+			self.factory.send_msg(f"Reloading Successful!", self.display_name)
 		else:
 			self.factory.send_chat("<%s> %s" % (self.display_name, p_text))
 			log.logger.info(f"<{self.display_name}> {p_text}")
