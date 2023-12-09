@@ -1,6 +1,6 @@
 # HomuraMC [![Discord](https://img.shields.io/discord/1141329766889300070.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/967gvTTEWc)
 
-[English](https://github.com/HomuraMC/Homura/blob/main/README.md) | 日本語
+[English](README.md) | 日本語
 
 HomuraMCは、Pythonで書かれたオープンソースMinecraftサーバーソフトウェアです。
 

@@ -1,5 +1,5 @@
 # HomuraMC [![Discord](https://img.shields.io/discord/1141329766889300070.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/967gvTTEWc)
-English | [日本語](https://github.com/HomuraMC/Homura/blob/main/README_JA.md)
+English | [日本語](README_JA.md)
 
 HomuraMC is Open Source Minecraft Server Software written in Python.  
 
