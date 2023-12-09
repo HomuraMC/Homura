@@ -13,7 +13,8 @@ class Buffer1_13(Buffer1_9):
             return b""
         else:
             return cls.pack_varint(len(palette)) + b"".join(
-                cls.pack_varint(x) for x in palette)
+                cls.pack_varint(x) for x in palette
+            )
 
     def unpack_chunk_section_palette(self, value_width):
         if value_width > 8:
@@ -30,10 +31,10 @@ class Buffer1_13(Buffer1_9):
         """
 
         if item is None:
-            return cls.pack('h', -1)
+            return cls.pack("h", -1)
 
-        item_id = cls.registry.encode('minecraft:item', item)
-        return cls.pack('hb', item_id, count) + cls.pack_nbt(tag)
+        item_id = cls.registry.encode("minecraft:item", item)
+        return cls.pack("hb", item_id, count) + cls.pack_nbt(tag)
 
     def unpack_slot(self):
         """
@@ -41,13 +42,13 @@ class Buffer1_13(Buffer1_9):
         """
 
         slot = {}
-        item_id = self.unpack('h')
+        item_id = self.unpack("h")
         if item_id == -1:
-            slot['item'] = None
+            slot["item"] = None
         else:
-            slot['item'] = self.registry.decode('minecraft:item', item_id)
-            slot['count'] = self.unpack('b')
-            slot['tag'] = self.unpack_nbt()
+            slot["item"] = self.registry.decode("minecraft:item", item_id)
+            slot["count"] = self.unpack("b")
+            slot["tag"] = self.unpack_nbt()
         return slot
 
     # Entity metadata ---------------------------------------------------------
@@ -62,25 +63,42 @@ class Buffer1_13(Buffer1_9):
         out = b""
         for ty_key, val in metadata.items():
             ty, key = ty_key
-            out += cls.pack('BB', key, ty)
-            if   ty == 0:  out += cls.pack('b', val)
-            elif ty == 1:  out += cls.pack_varint(val)
-            elif ty == 2:  out += cls.pack('f', val)
-            elif ty == 3:  out += cls.pack_string(val)
-            elif ty == 4:  out += cls.pack_chat(val)
-            elif ty == 5:  out += cls.pack_optional(cls.pack_chat, val)
-            elif ty == 6:  out += cls.pack_slot(**val)
-            elif ty == 7:  out += cls.pack('?', val)
-            elif ty == 8:  out += cls.pack_rotation(*val)
-            elif ty == 9:  out += cls.pack_position(*val)
-            elif ty == 10: out += cls.pack_optional(pack_position, val)
-            elif ty == 11: out += cls.pack_direction(val)
-            elif ty == 12: out += cls.pack_optional(cls.pack_uuid, val)
-            elif ty == 13: out += cls.pack_block(val)
-            elif ty == 14: out += cls.pack_nbt(val)
-            elif ty == 15: out += cls.pack_particle(*val)
-            else: raise ValueError("Unknown entity metadata type: %d" % ty)
-        out += cls.pack('B', 255)
+            out += cls.pack("BB", key, ty)
+            if ty == 0:
+                out += cls.pack("b", val)
+            elif ty == 1:
+                out += cls.pack_varint(val)
+            elif ty == 2:
+                out += cls.pack("f", val)
+            elif ty == 3:
+                out += cls.pack_string(val)
+            elif ty == 4:
+                out += cls.pack_chat(val)
+            elif ty == 5:
+                out += cls.pack_optional(cls.pack_chat, val)
+            elif ty == 6:
+                out += cls.pack_slot(**val)
+            elif ty == 7:
+                out += cls.pack("?", val)
+            elif ty == 8:
+                out += cls.pack_rotation(*val)
+            elif ty == 9:
+                out += cls.pack_position(*val)
+            elif ty == 10:
+                out += cls.pack_optional(pack_position, val)
+            elif ty == 11:
+                out += cls.pack_direction(val)
+            elif ty == 12:
+                out += cls.pack_optional(cls.pack_uuid, val)
+            elif ty == 13:
+                out += cls.pack_block(val)
+            elif ty == 14:
+                out += cls.pack_nbt(val)
+            elif ty == 15:
+                out += cls.pack_particle(*val)
+            else:
+                raise ValueError("Unknown entity metadata type: %d" % ty)
+        out += cls.pack("B", 255)
         return out
 
     def unpack_entity_metadata(self):
@@ -90,27 +108,44 @@ class Buffer1_13(Buffer1_9):
 
         metadata = {}
         while True:
-            key = self.unpack('B')
+            key = self.unpack("B")
             if key == 255:
                 return metadata
-            ty = self.unpack('B')
-            if   ty == 0:  val = self.unpack('b')
-            elif ty == 1:  val = self.unpack_varint()
-            elif ty == 2:  val = self.unpack('f')
-            elif ty == 3:  val = self.unpack_string()
-            elif ty == 4:  val = self.unpack_chat()
-            elif ty == 5:  val = self.unpack_optional(self.unpack_chat)
-            elif ty == 6:  val = self.unpack_slot()
-            elif ty == 7:  val = self.unpack('?')
-            elif ty == 8:  val = self.unpack_rotation()
-            elif ty == 9:  val = self.unpack_position()
-            elif ty == 10: val = self.unpack_optional(self.unpack_position)
-            elif ty == 11: val = self.unpack_direction()
-            elif ty == 12: val = self.unpack_optional(self.unpack_uuid)
-            elif ty == 13: val = self.unpack_block()
-            elif ty == 14: val = self.unpack_nbt()
-            elif ty == 15: val = self.unpack_particle()
-            else: raise ValueError("Unknown entity metadata type: %d" % ty)
+            ty = self.unpack("B")
+            if ty == 0:
+                val = self.unpack("b")
+            elif ty == 1:
+                val = self.unpack_varint()
+            elif ty == 2:
+                val = self.unpack("f")
+            elif ty == 3:
+                val = self.unpack_string()
+            elif ty == 4:
+                val = self.unpack_chat()
+            elif ty == 5:
+                val = self.unpack_optional(self.unpack_chat)
+            elif ty == 6:
+                val = self.unpack_slot()
+            elif ty == 7:
+                val = self.unpack("?")
+            elif ty == 8:
+                val = self.unpack_rotation()
+            elif ty == 9:
+                val = self.unpack_position()
+            elif ty == 10:
+                val = self.unpack_optional(self.unpack_position)
+            elif ty == 11:
+                val = self.unpack_direction()
+            elif ty == 12:
+                val = self.unpack_optional(self.unpack_uuid)
+            elif ty == 13:
+                val = self.unpack_block()
+            elif ty == 14:
+                val = self.unpack_nbt()
+            elif ty == 15:
+                val = self.unpack_particle()
+            else:
+                raise ValueError("Unknown entity metadata type: %d" % ty)
             metadata[ty, key] = val
 
     # Particle ----------------------------------------------------------------
@@ -124,16 +159,13 @@ class Buffer1_13(Buffer1_9):
         data = data or {}
         out = cls.pack_varint(id)
         if id == 3 or id == 20:
-            out += cls.pack_varint(data['block_state'])
+            out += cls.pack_varint(data["block_state"])
         elif id == 11:
             out += cls.pack(
-                'ffff',
-                data['red'],
-                data['green'],
-                data['blue'],
-                data['scale'])
+                "ffff", data["red"], data["green"], data["blue"], data["scale"]
+            )
         elif id == 27:
-            out += cls.pack_slot(**data['item'])
+            out += cls.pack_slot(**data["item"])
 
         return out
 
@@ -144,13 +176,11 @@ class Buffer1_13(Buffer1_9):
 
         id = self.unpack_varint()
         if id == 3 or id == 20:
-            data = {'block_state': self.unpack_varint()}
+            data = {"block_state": self.unpack_varint()}
         elif id == 11:
-            data = dict(zip(
-                ('red', 'green', 'blue', 'scale'),
-                self.unpack('ffff')))
+            data = dict(zip(("red", "green", "blue", "scale"), self.unpack("ffff")))
         elif id == 27:
-            data = {'item': self.unpack_slot()}
+            data = {"item": self.unpack_slot()}
         else:
             data = {}
 
@@ -175,13 +205,14 @@ class Buffer1_13(Buffer1_9):
 
         # Resolve children and redirects
         for node in nodes:
-            node['children'] = {nodes[idx]['name']: nodes[idx]
-                                for idx in node['children']}
-            if node['redirect'] is not None:
+            node["children"] = {
+                nodes[idx]["name"]: nodes[idx] for idx in node["children"]
+            }
+            if node["redirect"] is not None:
                 if resolve_redirects:
-                    node['redirect'] = nodes[node['redirect']]
+                    node["redirect"] = nodes[node["redirect"]]
                 else:
-                    node['redirect'] = None
+                    node["redirect"] = None
 
         return nodes[self.unpack_varint()]
 
@@ -192,19 +223,18 @@ class Buffer1_13(Buffer1_9):
 
         node = {}
 
-        flags = self.unpack('B')
-        node['type'] = ['root', 'literal', 'argument'][flags & 0x03]
-        node['executable'] = bool(flags & 0x04)
-        node['children'] = [self.unpack_varint() for _ in
-                            range(self.unpack_varint())]
-        node['redirect'] = self.unpack_varint() if flags & 0x08 else None
-        node['name'] = self.unpack_string() if node['type'] != 'root' else None
+        flags = self.unpack("B")
+        node["type"] = ["root", "literal", "argument"][flags & 0x03]
+        node["executable"] = bool(flags & 0x04)
+        node["children"] = [self.unpack_varint() for _ in range(self.unpack_varint())]
+        node["redirect"] = self.unpack_varint() if flags & 0x08 else None
+        node["name"] = self.unpack_string() if node["type"] != "root" else None
 
-        if node['type'] == 'argument':
-            node['parser'] = self.unpack_string()
-            node['properties'] = self.unpack_command_node_properties(node['parser'])
+        if node["type"] == "argument":
+            node["parser"] = self.unpack_string()
+            node["properties"] = self.unpack_command_node_properties(node["parser"])
 
-        node['suggestions'] = self.unpack_string() if flags & 0x10 else None
+        node["suggestions"] = self.unpack_string() if flags & 0x10 else None
 
         return node
 
@@ -220,19 +250,19 @@ class Buffer1_13(Buffer1_9):
             if parser == "bool":
                 pass
             elif parser == "string":
-                properties['behavior'] = self.unpack_varint()
+                properties["behavior"] = self.unpack_varint()
             elif parser in ("double", "float", "integer"):
                 fmt = parser[0]
-                flags = self.unpack('B')
-                properties['min'] = self.unpack(fmt) if flags & 0x01 else None
-                properties['max'] = self.unpack(fmt) if flags & 0x02 else None
+                flags = self.unpack("B")
+                properties["min"] = self.unpack(fmt) if flags & 0x01 else None
+                properties["max"] = self.unpack(fmt) if flags & 0x02 else None
 
         elif namespace == "minecraft":
-            if parser in ('entity', 'score_holder'):
-                properties['allow_multiple'] = self.unpack('?')
+            if parser in ("entity", "score_holder"):
+                properties["allow_multiple"] = self.unpack("?")
 
-            elif parser == 'range':
-                properties['allow_decimals'] = self.unpack('?')
+            elif parser == "range":
+                properties["allow_decimals"] = self.unpack("?")
 
         return properties
 
@@ -247,9 +277,9 @@ class Buffer1_13(Buffer1_9):
         idx = 0
         while idx < len(nodes):
             node = nodes[idx]
-            children = list(node['children'].values())
-            if node['redirect']:
-                children.append(node['redirect'])
+            children = list(node["children"].values())
+            if node["redirect"]:
+                children.append(node["redirect"])
 
             for child in children:
                 if child not in nodes:
@@ -274,28 +304,28 @@ class Buffer1_13(Buffer1_9):
         out = b""
 
         flags = (
-            ['root', 'literal', 'argument'].index(node['type']) |
-            int(node['executable']) << 2 |
-            int(node['redirect'] is not None) << 3 |
-            int(node['suggestions'] is not None) << 4)
-        out += cls.pack('B', flags)
-        out += cls.pack_varint(len(node['children']))
+            ["root", "literal", "argument"].index(node["type"])
+            | int(node["executable"]) << 2
+            | int(node["redirect"] is not None) << 3
+            | int(node["suggestions"] is not None) << 4
+        )
+        out += cls.pack("B", flags)
+        out += cls.pack_varint(len(node["children"]))
 
-        for child in node['children'].values():
+        for child in node["children"].values():
             out += cls.pack_varint(nodes.index(child))
 
-        if node['redirect'] is not None:
-            out += cls.pack_varint(nodes.index(node['redirect']))
+        if node["redirect"] is not None:
+            out += cls.pack_varint(nodes.index(node["redirect"]))
 
-        if node['name'] is not None:
-            out += cls.pack_string(node['name'])
+        if node["name"] is not None:
+            out += cls.pack_string(node["name"])
 
-        if node['type'] == 'argument':
-            out += cls.pack_string(node['parser'])
-            out += cls.pack_command_node_properties(node['parser'],
-                                                    node['properties'])
-        if node['suggestions'] is not None:
-            out += cls.pack_string(node['suggestions'])
+        if node["type"] == "argument":
+            out += cls.pack_string(node["parser"])
+            out += cls.pack_command_node_properties(node["parser"], node["properties"])
+        if node["suggestions"] is not None:
+            out += cls.pack_string(node["suggestions"])
 
         return out
 
@@ -312,24 +342,25 @@ class Buffer1_13(Buffer1_9):
             if parser == "bool":
                 pass
             elif parser == "string":
-                out += cls.pack_varint(properties['behavior'])
+                out += cls.pack_varint(properties["behavior"])
             elif parser in ("double", "float", "integer"):
                 fmt = parser[0]
                 flags = (
-                    int(properties['min'] is not None) |
-                    int(properties['max'] is not None) << 1)
-                out += cls.pack('B', flags)
-                if properties['min'] is not None:
-                    out += cls.pack(fmt, properties['min'])
-                if properties['max'] is not None:
-                    out += cls.pack(fmt, properties['max'])
+                    int(properties["min"] is not None)
+                    | int(properties["max"] is not None) << 1
+                )
+                out += cls.pack("B", flags)
+                if properties["min"] is not None:
+                    out += cls.pack(fmt, properties["min"])
+                if properties["max"] is not None:
+                    out += cls.pack(fmt, properties["max"])
 
         elif namespace == "minecraft":
-            if parser in ('entity', 'score_holder'):
-                out += cls.pack('?', properties['allow_multiple'])
+            if parser in ("entity", "score_holder"):
+                out += cls.pack("?", properties["allow_multiple"])
 
-            elif parser == 'range':
-                out += cls.pack('?', properties['allow_decimals'])
+            elif parser == "range":
+                out += cls.pack("?", properties["allow_decimals"])
 
         return out
 
@@ -340,29 +371,31 @@ class Buffer1_13(Buffer1_9):
         Unpacks a crafting recipe.
         """
         recipe = {}
-        recipe['name'] = self.unpack_string()
-        recipe['type'] = self.unpack_string()
+        recipe["name"] = self.unpack_string()
+        recipe["type"] = self.unpack_string()
 
-        if recipe['type'] == 'crafting_shapeless':
-            recipe['group'] = self.unpack_string()
-            recipe['ingredients'] = [
-                self.unpack_ingredient() for _ in range(self.unpack_varint())]
-            recipe['result'] = self.unpack_slot()
+        if recipe["type"] == "crafting_shapeless":
+            recipe["group"] = self.unpack_string()
+            recipe["ingredients"] = [
+                self.unpack_ingredient() for _ in range(self.unpack_varint())
+            ]
+            recipe["result"] = self.unpack_slot()
 
-        elif recipe['type'] == 'crafting_shaped':
-            recipe['width'] = self.unpack_varint()
-            recipe['height'] = self.unpack_varint()
-            recipe['group'] = self.unpack_string()
-            recipe['ingredients'] = [
-                self.unpack_ingredient() for _ in range(recipe['width'] *
-                                                    recipe['height'])]
-            recipe['result'] = self.unpack_slot()
-        elif recipe['type'] == 'smelting':
-            recipe['group'] = self.unpack_string()
-            recipe['ingredient'] = self.unpack_ingredient()
-            recipe['result'] = self.unpack_slot()
-            recipe['experience'] = self.unpack('f')
-            recipe['cooking_time'] = self.unpack_varint()
+        elif recipe["type"] == "crafting_shaped":
+            recipe["width"] = self.unpack_varint()
+            recipe["height"] = self.unpack_varint()
+            recipe["group"] = self.unpack_string()
+            recipe["ingredients"] = [
+                self.unpack_ingredient()
+                for _ in range(recipe["width"] * recipe["height"])
+            ]
+            recipe["result"] = self.unpack_slot()
+        elif recipe["type"] == "smelting":
+            recipe["group"] = self.unpack_string()
+            recipe["ingredient"] = self.unpack_ingredient()
+            recipe["result"] = self.unpack_slot()
+            recipe["experience"] = self.unpack("f")
+            recipe["cooking_time"] = self.unpack_varint()
 
         return recipe
 
@@ -373,27 +406,27 @@ class Buffer1_13(Buffer1_9):
         """
         data = cls.pack_string(name) + cls.pack_string(type)
 
-        if type == 'crafting_shapeless':
-            data += cls.pack_string(recipe['group'])
-            data += cls.pack_varint(len(recipe['ingredients']))
-            for ingredient in recipe['ingredients']:
+        if type == "crafting_shapeless":
+            data += cls.pack_string(recipe["group"])
+            data += cls.pack_varint(len(recipe["ingredients"]))
+            for ingredient in recipe["ingredients"]:
                 data += cls.pack_ingredient(ingredient)
-            data += cls.pack_slot(**recipe['result'])
+            data += cls.pack_slot(**recipe["result"])
 
-        elif type == 'crafting_shaped':
-            data += cls.pack_varint(recipe['width'])
-            data += cls.pack_varint(recipe['height'])
-            data += cls.pack_string(recipe['group'])
-            for ingredient in recipe['ingredients']:
+        elif type == "crafting_shaped":
+            data += cls.pack_varint(recipe["width"])
+            data += cls.pack_varint(recipe["height"])
+            data += cls.pack_string(recipe["group"])
+            for ingredient in recipe["ingredients"]:
                 data += cls.pack_ingredient(ingredient)
-            data += cls.pack_slot(**recipe['result'])
+            data += cls.pack_slot(**recipe["result"])
 
-        elif type == 'smelting':
-            data += cls.pack_string(recipe['group'])
-            data += cls.pack_ingredient(recipe['ingredient'])
-            data += cls.pack_slot(**recipe['result'])
-            data += cls.pack('f', recipe['experience'])
-            data += cls.pack_varint(recipe['cooking_time'])
+        elif type == "smelting":
+            data += cls.pack_string(recipe["group"])
+            data += cls.pack_ingredient(recipe["ingredient"])
+            data += cls.pack_slot(**recipe["result"])
+            data += cls.pack("f", recipe["experience"])
+            data += cls.pack_varint(recipe["cooking_time"])
 
         return data
 

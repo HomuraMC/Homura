@@ -2,8 +2,7 @@ from twisted.internet import reactor, protocol, defer
 from twisted.python import failure
 
 from quarry.types.chat import Message
-from quarry.net.protocol import Factory, Protocol, ProtocolError, \
-    protocol_modes_inv
+from quarry.net.protocol import Factory, Protocol, ProtocolError, protocol_modes_inv
 from quarry.net import auth, crypto
 
 
@@ -23,11 +22,13 @@ class ClientProtocol(Protocol):
             addr = self.transport.connector.getDestination()
             self.send_packet(
                 "handshake",
-                self.buff_type.pack_varint(self.protocol_version) +
-                self.buff_type.pack_string(addr.host) +
-                self.buff_type.pack('H', addr.port) +
-                self.buff_type.pack_varint(
-                    protocol_modes_inv[self.factory.protocol_mode_next]))
+                self.buff_type.pack_varint(self.protocol_version)
+                + self.buff_type.pack_string(addr.host)
+                + self.buff_type.pack("H", addr.port)
+                + self.buff_type.pack_varint(
+                    protocol_modes_inv[self.factory.protocol_mode_next]
+                ),
+            )
 
             # Switch buff type
             self.buff_type = self.factory.get_buff_type(self.protocol_version)
@@ -42,18 +43,26 @@ class ClientProtocol(Protocol):
             # Send login start
             # TODO: Implement signatures/1.19.1 UUID sending
             if self.protocol_version >= 760:  # 1.19.1+
-                self.send_packet("login_start",
-                                 self.buff_type.pack_string(self.factory.profile.display_name),
-                                 self.buff_type.pack("?", False),  # No signature as we haven't implemented them here
-                                 self.buff_type.pack("?", False))  # No UUID as we haven't implemented them yet
+                self.send_packet(
+                    "login_start",
+                    self.buff_type.pack_string(self.factory.profile.display_name),
+                    self.buff_type.pack(
+                        "?", False
+                    ),  # No signature as we haven't implemented them here
+                    self.buff_type.pack("?", False),
+                )  # No UUID as we haven't implemented them yet
             elif self.protocol_version == 759:  # 1.19
-                self.send_packet("login_start",
-                                 self.buff_type.pack_string(self.factory.profile.display_name),
-                                 self.buff_type.pack("?", False))  # No signature as we haven't implemented them here
+                self.send_packet(
+                    "login_start",
+                    self.buff_type.pack_string(self.factory.profile.display_name),
+                    self.buff_type.pack("?", False),
+                )  # No signature as we haven't implemented them here
             else:
                 # Send login start
-                self.send_packet("login_start", self.buff_type.pack_string(
-                    self.factory.profile.display_name))
+                self.send_packet(
+                    "login_start",
+                    self.buff_type.pack_string(self.factory.profile.display_name),
+                )
 
     # Callbacks ---------------------------------------------------------------
 
@@ -82,34 +91,32 @@ class ClientProtocol(Protocol):
         """
 
         # Send encryption response
-        p_shared_secret = crypto.encrypt_secret(
-            self.public_key,
-            self.shared_secret)
-        p_verify_token = crypto.encrypt_secret(
-            self.public_key,
-            self.verify_token)
+        p_shared_secret = crypto.encrypt_secret(self.public_key, self.shared_secret)
+        p_verify_token = crypto.encrypt_secret(self.public_key, self.verify_token)
 
         # 1.7.x
         if self.protocol_version <= 5:
-            pack_array = lambda d: self.buff_type.pack('h', len(d)) + d
+            pack_array = lambda d: self.buff_type.pack("h", len(d)) + d
 
         # 1.8.x
         else:
-            pack_array = lambda d: self.buff_type.pack_varint(
-                len(d), max_bits=16) + d
+            pack_array = lambda d: self.buff_type.pack_varint(len(d), max_bits=16) + d
 
         # 1.19+
         if self.protocol_version >= 759:
             self.send_packet(
                 "login_encryption_response",
                 pack_array(p_shared_secret),
-                self.buff_type.pack('?', True),  # Indicate we are still doing things the old way
-                pack_array(p_verify_token))
+                self.buff_type.pack(
+                    "?", True
+                ),  # Indicate we are still doing things the old way
+                pack_array(p_verify_token),
+            )
         else:
             self.send_packet(
                 "login_encryption_response",
-                pack_array(p_shared_secret) +
-                pack_array(p_verify_token))
+                pack_array(p_shared_secret) + pack_array(p_verify_token),
+            )
 
         # Enable encryption
         self.cipher.enable(self.shared_secret)
@@ -149,7 +156,8 @@ class ClientProtocol(Protocol):
         self.send_packet(
             "login_plugin_response",
             self.buff_type.pack_varint(p_message_id),
-            self.buff_type.pack('?', False))
+            self.buff_type.pack("?", False),
+        )
 
     def packet_login_disconnect(self, buff):
         p_data = buff.unpack_chat()
@@ -161,7 +169,7 @@ class ClientProtocol(Protocol):
 
         # 1.7.x
         if self.protocol_version <= 5:
-            unpack_array = lambda b: b.read(b.unpack('h'))
+            unpack_array = lambda b: b.read(b.unpack("h"))
         # 1.8.x
         else:
             unpack_array = lambda b: b.read(b.unpack_varint(max_bits=16))
@@ -170,8 +178,9 @@ class ClientProtocol(Protocol):
         p_verify_token = unpack_array(buff)
 
         if not self.factory.profile.online:
-            raise ProtocolError("Can't log into online-mode server while using"
-                                " offline profile")
+            raise ProtocolError(
+                "Can't log into online-mode server while using" " offline profile"
+            )
 
         self.shared_secret = crypto.make_shared_secret()
         self.public_key = crypto.import_public_key(p_public_key)
@@ -179,9 +188,8 @@ class ClientProtocol(Protocol):
 
         # make digest
         digest = crypto.make_digest(
-            p_server_id.encode('ascii'),
-            self.shared_secret,
-            p_public_key)
+            p_server_id.encode("ascii"), self.shared_secret, p_public_key
+        )
 
         # do auth
         deferred = self.factory.profile.join(digest)
@@ -222,32 +230,34 @@ class SpawningClientProtocol(ClientProtocol):
 
     # Send a 'player' packet every tick
     def update_player_inc(self):
-        self.send_packet("player", self.buff_type.pack('?', True))
+        self.send_packet("player", self.buff_type.pack("?", True))
 
     # Sent a 'player position and look' packet every 20 ticks
     def update_player_full(self):
         self.send_packet(
             "player_position_and_look",
             self.buff_type.pack(
-                'dddff?',
+                "dddff?",
                 self.pos_look[0],
                 self.pos_look[1],
                 self.pos_look[2],
                 self.pos_look[3],
                 self.pos_look[4],
-                True))
+                True,
+            ),
+        )
 
     def packet_player_position_and_look(self, buff):
-        p_pos_look = buff.unpack('dddff')
+        p_pos_look = buff.unpack("dddff")
 
         # 1.7.x
         if self.protocol_version <= 5:
-            p_on_ground = buff.unpack('?')
+            p_on_ground = buff.unpack("?")
             self.pos_look = p_pos_look
 
         # 1.8.x
         else:
-            p_flags = buff.unpack('B')
+            p_flags = buff.unpack("B")
 
             for i in range(5):
                 if p_flags & (1 << i):
@@ -260,37 +270,46 @@ class SpawningClientProtocol(ClientProtocol):
                 teleport_id = buff.unpack_varint()
 
             if self.protocol_version > 754:
-                dismount_vehicle = buff.unpack('?')
+                dismount_vehicle = buff.unpack("?")
 
         # Send Player Position And Look
 
         # 1.7.x
         if self.protocol_version <= 5:
-            self.send_packet("player_position_and_look", self.buff_type.pack(
-                'ddddff?',
-                self.pos_look[0],
-                self.pos_look[1] - 1.62,
-                self.pos_look[1],
-                self.pos_look[2],
-                self.pos_look[3],
-                self.pos_look[4],
-                True))
+            self.send_packet(
+                "player_position_and_look",
+                self.buff_type.pack(
+                    "ddddff?",
+                    self.pos_look[0],
+                    self.pos_look[1] - 1.62,
+                    self.pos_look[1],
+                    self.pos_look[2],
+                    self.pos_look[3],
+                    self.pos_look[4],
+                    True,
+                ),
+            )
 
         # 1.8.x
         elif self.protocol_version <= 47:
-            self.send_packet("player_position_and_look", self.buff_type.pack(
-                'dddff?',
-                self.pos_look[0],
-                self.pos_look[1],
-                self.pos_look[2],
-                self.pos_look[3],
-                self.pos_look[4],
-                True))
+            self.send_packet(
+                "player_position_and_look",
+                self.buff_type.pack(
+                    "dddff?",
+                    self.pos_look[0],
+                    self.pos_look[1],
+                    self.pos_look[2],
+                    self.pos_look[3],
+                    self.pos_look[4],
+                    True,
+                ),
+            )
 
         # 1.9.x
         else:
-            self.send_packet("teleport_confirm", self.buff_type.pack_varint(
-                teleport_id))
+            self.send_packet(
+                "teleport_confirm", self.buff_type.pack_varint(teleport_id)
+            )
 
         if not self.spawned:
             self.spawn()
@@ -301,7 +320,7 @@ class SpawningClientProtocol(ClientProtocol):
         self.spawned = True
 
     def packet_keep_alive(self, buff):
-        self.send_packet('keep_alive', buff.read())
+        self.send_packet("keep_alive", buff.read())
 
 
 class ClientFactory(Factory, protocol.ClientFactory):
@@ -318,7 +337,6 @@ class ClientFactory(Factory, protocol.ClientFactory):
 
 
 class PingClientProtocol(ClientProtocol):
-
     def status_response(self, data):
         self.close()
         detected_version = int(data["version"]["protocol"])
@@ -326,11 +344,12 @@ class PingClientProtocol(ClientProtocol):
             self.factory.detected_protocol_version.callback(detected_version)
         else:
             message = "Unsupported protocol version (%d)" % detected_version
-            if 'description' in data:
-                motd = Message(data['description'])
+            if "description" in data:
+                motd = Message(data["description"])
                 message = "%s: %s" % (message, motd.to_string())
             self.factory.detected_protocol_version.errback(
-                failure.Failure(ProtocolError(message)))
+                failure.Failure(ProtocolError(message))
+            )
 
 
 class PingClientFactory(ClientFactory):

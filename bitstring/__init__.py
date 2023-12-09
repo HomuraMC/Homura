@@ -65,12 +65,30 @@ from bitstring.classes import Bits, BitArray, bytealigned, lsb0, _MyModuleType
 from bitstring.bitstream import ConstBitStream, BitStream
 from bitstring.methods import pack
 from bitstring.bitstring_array import Array
-from bitstring.exceptions import Error, ReadError, InterpretError, ByteAlignError, CreationError
+from bitstring.exceptions import (
+    Error,
+    ReadError,
+    InterpretError,
+    ByteAlignError,
+    CreationError,
+)
 
 
 sys.modules[__name__].__class__ = _MyModuleType
 
 
-__all__ = ['ConstBitStream', 'BitStream', 'BitArray', 'Array',
-           'Bits', 'pack', 'Error', 'ReadError', 'InterpretError',
-           'ByteAlignError', 'CreationError', 'bytealigned', 'lsb0']
+__all__ = [
+    "ConstBitStream",
+    "BitStream",
+    "BitArray",
+    "Array",
+    "Bits",
+    "pack",
+    "Error",
+    "ReadError",
+    "InterpretError",
+    "ByteAlignError",
+    "CreationError",
+    "bytealigned",
+    "lsb0",
+]

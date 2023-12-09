@@ -28,11 +28,18 @@ def _offset_slice_indices_msb0(key: slice, length: int, offset: int) -> slice:
 class BitStore(bitarray.bitarray):
     """A light wrapper around bitarray that does the LSB0 stuff"""
 
-    __slots__ = ('modified', 'length', 'offset', 'filename', 'immutable')
+    __slots__ = ("modified", "length", "offset", "filename", "immutable")
 
-    def __init__(self, *args, immutable: bool = False, frombytes: Optional[Union[bytes, bytearray]] = None,
-                 offset: int = 0, length: Optional[int] = None, filename: str = '',
-                 **kwargs) -> None:
+    def __init__(
+        self,
+        *args,
+        immutable: bool = False,
+        frombytes: Optional[Union[bytes, bytearray]] = None,
+        offset: int = 0,
+        length: Optional[int] = None,
+        filename: str = "",
+        **kwargs,
+    ) -> None:
         if frombytes is not None:
             self.frombytes(frombytes)
         self.immutable = immutable
@@ -40,7 +47,7 @@ class BitStore(bitarray.bitarray):
         self.filename = filename
         # Here 'modified' means that it isn't just the underlying bitarray. It could have a different start and end, and be from a file.
         # This also means that it shouldn't be changed further, so setting deleting etc. are disallowed.
-        self.modified = offset != 0 or length is not None or filename != ''
+        self.modified = offset != 0 or length is not None or filename != ""
         if self.modified:
             assert immutable is True
             # These class variable only exist if modified is True.
@@ -52,7 +59,8 @@ class BitStore(bitarray.bitarray):
             if self.length + self.offset > super().__len__():
                 self.length = super().__len__() - self.offset
                 raise CreationError(
-                    f"Can't create bitstring with a length of {self.length} and an offset of {self.offset} from {super().__len__()} bits of data.")
+                    f"Can't create bitstring with a length of {self.length} and an offset of {self.offset} from {super().__len__()} bits of data."
+                )
 
     @classmethod
     def _setlsb0methods(cls, lsb0: bool = False) -> None:
@@ -71,7 +79,7 @@ class BitStore(bitarray.bitarray):
 
     def __new__(cls, *args, **kwargs) -> bitarray.bitarray:
         # Just pass on the buffer keyword, not the length, offset, filename and frombytes
-        new_kwargs = {'buffer': kwargs.get('buffer', None)}
+        new_kwargs = {"buffer": kwargs.get("buffer", None)}
         return bitarray.bitarray.__new__(cls, *args, **new_kwargs)
 
     def __add__(self, other: bitarray.bitarray) -> BitStore:
@@ -152,13 +160,21 @@ class BitStore(bitarray.bitarray):
 
     def any_set(self) -> bool:
         if self.modified:
-            return super().__getitem__(slice(self.offset, self.offset + self.length, None)).any()
+            return (
+                super()
+                .__getitem__(slice(self.offset, self.offset + self.length, None))
+                .any()
+            )
         else:
             return super().any()
 
     def all_set(self) -> bool:
         if self.modified:
-            return super().__getitem__(slice(self.offset, self.offset + self.length, None)).all()
+            return (
+                super()
+                .__getitem__(slice(self.offset, self.offset + self.length, None))
+                .all()
+            )
         else:
             return super().all()
 

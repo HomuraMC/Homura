@@ -1,7 +1,12 @@
 from typing import List
 
 from quarry.types.buffer.v1_19 import Buffer1_19
-from quarry.types.chat import LastSeenMessage, SignedMessage, SignedMessageHeader, SignedMessageBody
+from quarry.types.chat import (
+    LastSeenMessage,
+    SignedMessage,
+    SignedMessageHeader,
+    SignedMessageBody,
+)
 
 
 class Buffer1_19_1(Buffer1_19):
@@ -11,6 +16,7 @@ class Buffer1_19_1(Buffer1_19):
 
         if len(entries) > 5:
             from quarry.net.protocol import ProtocolError
+
             raise ProtocolError("Last seen list is too large")
 
         for entry in entries:
@@ -24,6 +30,7 @@ class Buffer1_19_1(Buffer1_19):
 
         if seen_messages_length > 5:
             from quarry.net.protocol import ProtocolError
+
             raise ProtocolError("Last seen list is too large")
 
         for i in range(seen_messages_length):
@@ -47,14 +54,16 @@ class Buffer1_19_1(Buffer1_19):
 
     @classmethod
     def pack_signed_message(cls, message: SignedMessage):
-        return cls.pack_optional(cls.pack_byte_array, message.header.previous_signature) \
-               + cls.pack_uuid(message.header.sender) \
-               + cls.pack_byte_array(message.signature or b'') \
-               + cls.pack_string(message.body.message) \
-               + cls.pack_optional(cls.pack_chat, message.body.decorated_message) \
-               + cls.pack('QQ', message.body.timestamp, message.body.salt) \
-               + cls.pack_last_seen_list(message.body.last_seen) \
-               + cls.pack_optional(cls.pack_chat, message.unsigned_content)
+        return (
+            cls.pack_optional(cls.pack_byte_array, message.header.previous_signature)
+            + cls.pack_uuid(message.header.sender)
+            + cls.pack_byte_array(message.signature or b"")
+            + cls.pack_string(message.body.message)
+            + cls.pack_optional(cls.pack_chat, message.body.decorated_message)
+            + cls.pack("QQ", message.body.timestamp, message.body.salt)
+            + cls.pack_last_seen_list(message.body.last_seen)
+            + cls.pack_optional(cls.pack_chat, message.unsigned_content)
+        )
 
     def unpack_signed_message(self):
         previous_signature = self.unpack_optional(self.unpack_byte_array)
@@ -62,8 +71,8 @@ class Buffer1_19_1(Buffer1_19):
         signature = self.unpack_byte_array()
         message = self.unpack_string()
         decorated_message = self.unpack_optional(self.unpack_chat)
-        timestamp = self.unpack('Q')
-        salt = self.unpack('Q')
+        timestamp = self.unpack("Q")
+        salt = self.unpack("Q")
         last_seen = self.unpack_last_seen_list()
         unsigned_content = self.unpack_optional(self.unpack_chat)
 

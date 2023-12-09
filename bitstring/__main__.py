@@ -5,8 +5,9 @@ from bitstring.classes import Bits
 def main() -> None:
     # check if final parameter is an interpretation string
     fp = sys.argv[-1]
-    if fp in ['-h', '--help'] or len(sys.argv) == 1:
-        print("""Create and interpret a bitstring from command-line parameters.
+    if fp in ["-h", "--help"] or len(sys.argv) == 1:
+        print(
+            """Create and interpret a bitstring from command-line parameters.
 
 Command-line parameters are concatenated and a bitstring created
 from them. If the final parameter is either an interpretation string
@@ -24,24 +25,25 @@ $ python -m bitstring 0xff 3*0b01,0b11 uint
 65367
 $ python -m bitstring hex=01, uint:12=352.hex
 01160
-        """)
+        """
+        )
         return
     if fp in Bits._name_to_read.keys():
         # concatenate all other parameters and interpret using the final one
-        b1 = Bits(','.join(sys.argv[1: -1]))
+        b1 = Bits(",".join(sys.argv[1:-1]))
         print(b1._readtoken(fp, 0, b1.__len__())[0])
     else:
         # does final parameter end with a dot then an interpretation string?
-        interp = fp[fp.rfind('.') + 1:]
+        interp = fp[fp.rfind(".") + 1 :]
         if interp in Bits._name_to_read.keys():
-            sys.argv[-1] = fp[:fp.rfind('.')]
-            b1 = Bits(','.join(sys.argv[1:]))
+            sys.argv[-1] = fp[: fp.rfind(".")]
+            b1 = Bits(",".join(sys.argv[1:]))
             print(b1._readtoken(interp, 0, b1.__len__())[0])
         else:
             # No interpretation - just use default print
-            b1 = Bits(','.join(sys.argv[1:]))
+            b1 = Bits(",".join(sys.argv[1:]))
             print(b1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

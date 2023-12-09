@@ -13,9 +13,10 @@ _ids = {}
 
 # Base types ------------------------------------------------------------------
 
+
 @functools.total_ordering
 class _Tag(object):
-    __slots__ = ('value',)
+    __slots__ = ("value",)
 
     def __init__(self, value):
         self.value = value
@@ -62,13 +63,13 @@ class _ArrayTag(_Tag):
 
     @classmethod
     def from_buff(cls, buff):
-        length = buff.unpack('i')
+        length = buff.unpack("i")
         data = buff.read(length * (cls.width // 8))
         return cls(PackedArray.from_bytes(data, length, cls.width, cls.width))
 
     def to_bytes(self):
         data = self.value.to_bytes()
-        data = Buffer.pack('i', len(data) // (self.width // 8)) + data
+        data = Buffer.pack("i", len(data) // (self.width // 8)) + data
         return data
 
     def to_obj(self):
@@ -77,34 +78,35 @@ class _ArrayTag(_Tag):
 
 # NBT tags --------------------------------------------------------------------
 
+
 class TagByte(_DataTag):
     __slots__ = ()
-    fmt = 'b'
+    fmt = "b"
 
 
 class TagShort(_DataTag):
     __slots__ = ()
-    fmt = 'h'
+    fmt = "h"
 
 
 class TagInt(_DataTag):
     __slots__ = ()
-    fmt = 'i'
+    fmt = "i"
 
 
 class TagLong(_DataTag):
     __slots__ = ()
-    fmt = 'q'
+    fmt = "q"
 
 
 class TagFloat(_DataTag):
     __slots__ = ()
-    fmt = 'f'
+    fmt = "f"
 
 
 class TagDouble(_DataTag):
     __slots__ = ()
-    fmt = 'd'
+    fmt = "d"
 
 
 class TagString(_Tag):
@@ -112,12 +114,12 @@ class TagString(_Tag):
 
     @classmethod
     def from_buff(cls, buff):
-        string_length = buff.unpack('H')
-        return cls(buff.read(string_length).decode('utf8'))
+        string_length = buff.unpack("H")
+        return cls(buff.read(string_length).decode("utf8"))
 
     def to_bytes(self):
-        data = self.value.encode('utf8')
-        return Buffer.pack('H', len(data)) + data
+        data = self.value.encode("utf8")
+        return Buffer.pack("H", len(data)) + data
 
 
 class TagByteArray(_ArrayTag):
@@ -140,7 +142,7 @@ class TagList(_Tag):
 
     @classmethod
     def from_buff(cls, buff):
-        inner_kind_id, array_length = buff.unpack('bi')
+        inner_kind_id, array_length = buff.unpack("bi")
         inner_kind = _kinds[inner_kind_id]
         return cls([inner_kind.from_buff(buff) for _ in range(array_length)])
 
@@ -150,8 +152,9 @@ class TagList(_Tag):
         else:
             head = TagByte(0)
 
-        return Buffer.pack('bi', _ids[type(head)], len(self.value)) + \
-               b"".join(tag.to_bytes() for tag in self.value)
+        return Buffer.pack("bi", _ids[type(head)], len(self.value)) + b"".join(
+            tag.to_bytes() for tag in self.value
+        )
 
     def to_obj(self):
         return [tag.to_obj() for tag in self.value]
@@ -171,7 +174,7 @@ class TagCompound(_Tag):
             value = {}
 
         while True:
-            kind_id = buff.unpack('b')
+            kind_id = buff.unpack("b")
             if kind_id == 0:
                 return cls(value)
             kind = _kinds[kind_id]
@@ -184,12 +187,12 @@ class TagCompound(_Tag):
     def to_bytes(self):
         string = b""
         for name, tag in self.value.items():
-            string += Buffer.pack('b', _ids[type(tag)])
+            string += Buffer.pack("b", _ids[type(tag)])
             string += TagString(name).to_bytes()
             string += tag.to_bytes()
 
         if len(self.value) == 0 or not self.root:
-            string += Buffer.pack('b', 0)
+            string += Buffer.pack("b", 0)
 
         return string
 
@@ -202,8 +205,7 @@ class TagCompound(_Tag):
 
             if old_tag and not new_tag:
                 del self.value[name]
-            elif isinstance(old_tag, TagCompound) \
-                    and isinstance(new_tag, TagCompound):
+            elif isinstance(old_tag, TagCompound) and isinstance(new_tag, TagCompound):
                 self.value[name].update(new_tag)
             else:
                 self.value[name] = new_tag
@@ -242,6 +244,7 @@ _ids.update({v: k for k, v in _kinds.items()})
 
 # Files -----------------------------------------------------------------------
 
+
 class NBTFile(object):
     root_tag = None
 
@@ -250,11 +253,11 @@ class NBTFile(object):
 
     @classmethod
     def load(cls, path):
-        with gzip.open(path, 'rb') as fd:
+        with gzip.open(path, "rb") as fd:
             return cls(TagRoot.from_bytes(fd.read()))
 
     def save(self, path):
-        with gzip.open(path, 'wb') as fd:
+        with gzip.open(path, "wb") as fd:
             fd.write(self.root_tag.to_bytes())
 
 
@@ -262,6 +265,7 @@ class RegionFile(object):
     """
     Experimental support for the Minecraft world storage format (``.mca``).
     """
+
     def __init__(self, path):
         self.fd = open(path, "r+b")
 
@@ -287,7 +291,7 @@ class RegionFile(object):
         chunk_x = chunk.body.value["Level"].value["xPos"].value
         chunk_z = chunk.body.value["Level"].value["zPos"].value
         chunk = zlib.compress(chunk.to_bytes())
-        chunk = Buffer.pack('IB', len(chunk), 2) + chunk
+        chunk = Buffer.pack("IB", len(chunk), 2) + chunk
         chunk_length = 1 + (len(chunk) - 1) // 4096
 
         # Load extents
@@ -296,7 +300,7 @@ class RegionFile(object):
         buff = Buffer(self.fd.read(4096))
         for idx in range(1024):
             z, x = divmod(idx, 32)
-            entry = buff.unpack('I')
+            entry = buff.unpack("I")
             offset, length = entry >> 8, entry & 0xFF
             if offset > 0 and not (x == chunk_x and z == chunk_z):
                 extents.append((offset, length))
@@ -306,20 +310,19 @@ class RegionFile(object):
         # Compute new extent
         for idx in range(len(extents) - 1):
             start = extents[idx][0] + extents[idx][1]
-            end = extents[idx+1][0]
+            end = extents[idx + 1][0]
             if (end - start) >= chunk_length:
                 chunk_offset = start
-                extents.insert(idx+1, (chunk_offset, chunk_length))
+                extents.insert(idx + 1, (chunk_offset, chunk_length))
                 break
 
         # Write extent header
         self.fd.seek(4 * (32 * chunk_z + chunk_x))
-        self.fd.write(Buffer.pack(
-            'I', (chunk_offset << 8) | (chunk_length & 0xFF)))
+        self.fd.write(Buffer.pack("I", (chunk_offset << 8) | (chunk_length & 0xFF)))
 
         # Write timestamp header
         self.fd.seek(4096 + 4 * (32 * chunk_z + chunk_x))
-        self.fd.write(Buffer.pack('I', int(time.time())))
+        self.fd.write(Buffer.pack("I", int(time.time())))
 
         # Write chunk
         self.fd.seek(4096 * chunk_offset)
@@ -340,7 +343,7 @@ class RegionFile(object):
         # Read extent header
         self.fd.seek(4 * (32 * chunk_z + chunk_x))
         buff.add(self.fd.read(4))
-        entry = buff.unpack('I')
+        entry = buff.unpack("I")
         chunk_offset, chunk_length = entry >> 8, entry & 0xFF
         if chunk_offset == 0:
             raise ValueError((chunk_x, chunk_z))
@@ -348,7 +351,7 @@ class RegionFile(object):
         # Read chunk
         self.fd.seek(4096 * chunk_offset)
         buff.add(self.fd.read(4096 * chunk_length))
-        chunk = buff.read(buff.unpack('IB')[0])
+        chunk = buff.read(buff.unpack("IB")[0])
         chunk = zlib.decompress(chunk)
         chunk = TagRoot.from_bytes(chunk)
         return chunk
@@ -370,6 +373,7 @@ class RegionFile(object):
 
 # Debug -----------------------------------------------------------------------
 
+
 def alt_repr(tag, level=0):
     """
     Returns a human-readable representation of a tag using the same format as
@@ -378,10 +382,7 @@ def alt_repr(tag, level=0):
     name = lambda kind: type(kind).__name__.replace("Tag", "TAG_")
 
     if isinstance(tag, _ArrayTag):
-        return "%s%s: %d entries" % (
-            "  " * level,
-            name(tag),
-            len(tag.value))
+        return "%s%s: %d entries" % ("  " * level, name(tag), len(tag.value))
 
     elif isinstance(tag, TagList):
         return "%s%s: %d entries\n%s{\n%s\n%s}" % (
@@ -389,13 +390,15 @@ def alt_repr(tag, level=0):
             name(tag),
             len(tag.value),
             "  " * level,
-            "\n".join(alt_repr(tag, level+1) for tag in tag.value),
-            "  " * level)
+            "\n".join(alt_repr(tag, level + 1) for tag in tag.value),
+            "  " * level,
+        )
 
     elif isinstance(tag, TagRoot):
         return "\n".join(
-                alt_repr(tag, level).replace(': ', '("%s"): ' % name, 1)
-                for name, tag in tag.value.items())
+            alt_repr(tag, level).replace(": ", '("%s"): ' % name, 1)
+            for name, tag in tag.value.items()
+        )
 
     elif isinstance(tag, TagCompound):
         return "%s%s: %d entries\n%s{\n%s\n%s}" % (
@@ -404,18 +407,14 @@ def alt_repr(tag, level=0):
             len(tag.value),
             "  " * level,
             "\n".join(
-                alt_repr(tag, level+1).replace(': ', '("%s"): ' % name, 1)
-                for name, tag in tag.value.items()),
-            "  " * level)
+                alt_repr(tag, level + 1).replace(": ", '("%s"): ' % name, 1)
+                for name, tag in tag.value.items()
+            ),
+            "  " * level,
+        )
 
     elif isinstance(tag, TagString):
-        return '%s%s: "%s"' % (
-            "  " * level,
-            name(tag),
-            tag.value)
+        return '%s%s: "%s"' % ("  " * level, name(tag), tag.value)
 
     else:
-        return "%s%s: %r" % (
-            "  " * level,
-            name(tag),
-            tag.value)
+        return "%s%s: %r" % ("  " * level, name(tag), tag.value)

@@ -41,9 +41,10 @@ def request(url, timeout, err_type=Exception, expect_content=False, data=None):
     def _callback(response):
         def _callback2(body):
             if len(body):
-                d0.callback(json.loads(body.decode('ascii')))
+                d0.callback(json.loads(body.decode("ascii")))
             else:
                 d0.callback(None)
+
         d = readBody(response)
         d.addCallback(_callback2)
         return d
@@ -52,30 +53,28 @@ def request(url, timeout, err_type=Exception, expect_content=False, data=None):
         if isinstance(err.value, error.Error):
             if err.value.status == b"204":
                 if expect_content:
-                    err = failure.Failure(err_type(
-                        "No Content",
-                        "No content was returned by the server"))
+                    err = failure.Failure(
+                        err_type("No Content", "No content was returned by the server")
+                    )
                 else:
                     d0.callback(None)
                     return
             else:
-                data = json.loads(err.value.response.decode('ascii'))
-                err = failure.Failure(err_type(
-                    data['error'],
-                    data['errorMessage']))
+                data = json.loads(err.value.response.decode("ascii"))
+                err = failure.Failure(err_type(data["error"], data["errorMessage"]))
         d0.errback(err)
 
     agent = Agent(reactor)
 
     if data:
         d1 = agent.request(
-            b'POST',
+            b"POST",
             url,
             Headers({"Content-Type": ["application/json"]}),
-            BytesProducer(json.dumps(data).encode('ascii')),
+            BytesProducer(json.dumps(data).encode("ascii")),
         )
     else:
-        d1 = agent.request(b'GET', url)
+        d1 = agent.request(b"GET", url)
 
     d1.addCallbacks(_callback, _errback)
 

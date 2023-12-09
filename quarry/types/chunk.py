@@ -48,12 +48,12 @@ class PackedArray(Sequence):
     #: The width in bits of values.
     value_width = None
 
-
     def __repr__(self):
-        return "<PackedArray length=%d sector_width=%d value_width=%d>" \
-               % (self.length,
-                  self.sector_width,
-                  self.value_width)
+        return "<PackedArray length=%d sector_width=%d value_width=%d>" % (
+            self.length,
+            self.sector_width,
+            self.value_width,
+        )
 
     # Constructors ------------------------------------------------------------
 
@@ -105,7 +105,6 @@ class PackedArray(Sequence):
 
         storage = BitArray(bytes=bytes)
         return cls(storage, length, sector_width, value_width)
-
 
     @classmethod
     def from_light_bytes(cls, bytes):
@@ -160,8 +159,7 @@ class PackedArray(Sequence):
         """
 
         sector, value = divmod(idx, self.sector_width // self.value_width)
-        pos = (1 + sector) * self.sector_width - \
-              (1 + value ) * self.value_width
+        pos = (1 + sector) * self.sector_width - (1 + value) * self.value_width
         return pos, pos + self.value_width
 
     def is_empty(self):
@@ -182,8 +180,10 @@ class PackedArray(Sequence):
 
     def __getitem__(self, item):
         if isinstance(item, slice):
-            return [self.storage._slice(*self.pos(idx)).uint
-                    for idx in range(*item.indices(len(self)))]
+            return [
+                self.storage._slice(*self.pos(idx)).uint
+                for idx in range(*item.indices(len(self)))
+            ]
         else:
             if not 0 <= item < len(self):
                 raise IndexError(item)
@@ -193,12 +193,12 @@ class PackedArray(Sequence):
         if isinstance(item, slice):
             for idx, value in zip(range(*item.indices(len(self))), value):
                 self.storage._overwrite(
-                    bs=Bits(uint=value, length=self.value_width),
-                    pos=self.pos(idx)[0])
+                    bs=Bits(uint=value, length=self.value_width), pos=self.pos(idx)[0]
+                )
         else:
             self.storage._overwrite(
-                bs=Bits(uint=value, length=self.value_width),
-                pos=self.pos(item)[0])
+                bs=Bits(uint=value, length=self.value_width), pos=self.pos(item)[0]
+            )
 
 
 class BlockArray(Sequence):
@@ -233,8 +233,7 @@ class BlockArray(Sequence):
     non_air = None
 
     def __repr__(self):
-        return "<BlockArray palette=%d storage=%r>" \
-               % (len(self.palette), self.storage)
+        return "<BlockArray palette=%d storage=%r>" % (len(self.palette), self.storage)
 
     # Constructors ------------------------------------------------------------
 
@@ -269,7 +268,7 @@ class BlockArray(Sequence):
         for block data and the palette. Minecraft 1.13+ only.
         """
 
-        nbt_palette = section.value['Palette']
+        nbt_palette = section.value["Palette"]
         if isinstance(nbt_palette.value, _NBTPaletteProxy):
             proxy = nbt_palette.value
         else:
@@ -306,8 +305,9 @@ class BlockArray(Sequence):
     @property
     def non_air(self):
         if self._non_air == -1:
-            self._non_air = [
-                self.registry.is_air_block(obj) for obj in self].count(False)
+            self._non_air = [self.registry.is_air_block(obj) for obj in self].count(
+                False
+            )
         return self._non_air
 
     def repack(self, reserve=None):
@@ -361,7 +361,7 @@ class BlockArray(Sequence):
     def __getitem__(self, item):
         if isinstance(item, slice):
             values = []
-            for value in self.storage[item.start:item.stop:item.step]:
+            for value in self.storage[item.start : item.stop : item.step]:
                 if self.palette:
                     value = self.palette[value]
                 value = self.registry.decode_block(value)
@@ -381,8 +381,9 @@ class BlockArray(Sequence):
             return
 
         if self._non_air != -1:
-            self._non_air += int(self.registry.is_air_block(self[item])) - \
-                             int(self.registry.is_air_block(value))
+            self._non_air += int(self.registry.is_air_block(self[item])) - int(
+                self.registry.is_air_block(value)
+            )
 
         value = self.registry.encode_block(value)
 
@@ -433,8 +434,7 @@ class _NBTPaletteProxy(MutableSequence):
         # FIXME: NBT chunk sections are *always* paletted, and so the format
         # diverges for palettes longer than 255 entries.
         if len(self.palette) >= 255:
-            raise ValueError("Can't add more than 255 entries to NBT palette "
-                             "proxy.")
+            raise ValueError("Can't add more than 255 entries to NBT palette " "proxy.")
         self.palette.insert(idx, None)
         self[idx] = value
 
@@ -448,18 +448,21 @@ class _NBTPaletteProxy(MutableSequence):
         from quarry.types import nbt
 
         block = self.registry.decode_block(self.palette[idx])
-        entry = nbt.TagCompound({'Name': nbt.TagString(block['name'])})
+        entry = nbt.TagCompound({"Name": nbt.TagString(block["name"])})
         if len(block) > 1:
-            entry.value['Properties'] = nbt.TagCompound({
-                key: nbt.TagString(value)
-                for key, value in block.items()
-                if key != "name"})
+            entry.value["Properties"] = nbt.TagCompound(
+                {
+                    key: nbt.TagString(value)
+                    for key, value in block.items()
+                    if key != "name"
+                }
+            )
 
         return entry
 
     def __setitem__(self, idx, tag):
-        block = {'name': tag.value['Name'].value}
-        properties = tag.value.get('Properties')
+        block = {"name": tag.value["Name"].value}
+        properties = tag.value.get("Properties")
         if properties:
             block.update(properties.to_obj())
 

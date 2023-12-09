@@ -1,3 +1,8 @@
 /.env
 __pycache__
 /Homura.ini
+classes/plugins
+plugins
+homura
+server.jar
+assets/java

@@ -9,8 +9,7 @@ from cached_property import cached_property
 
 from quarry.net.auth import PlayerPublicKey
 from quarry.net.crypto import verify_mojang_v1_signature, verify_mojang_v2_signature
-from quarry.net.protocol import Factory, Protocol, ProtocolError, \
-    protocol_modes
+from quarry.net.protocol import Factory, Protocol, ProtocolError, protocol_modes
 from quarry.net import auth, crypto
 from quarry.types.uuid import UUID
 
@@ -55,29 +54,33 @@ class ServerProtocol(Protocol):
                 # Send set compression
                 self.send_packet(
                     "login_set_compression",
-                    self.buff_type.pack_varint(
-                        self.factory.compression_threshold))
+                    self.buff_type.pack_varint(self.factory.compression_threshold),
+                )
                 self.set_compression(self.factory.compression_threshold)
 
             # Send login success
             if self.protocol_version >= 759:  # 1.19+
                 self.send_packet(
                     "login_success",
-                    self.buff_type.pack_uuid(self.uuid) +
-                    self.buff_type.pack_string(self.display_name) +
-                    self.buff_type.pack_varint(0))  # Profile properties
+                    self.buff_type.pack_uuid(self.uuid)
+                    + self.buff_type.pack_string(self.display_name)
+                    + self.buff_type.pack_varint(0),
+                )  # Profile properties
             elif self.protocol_version > 578:
                 self.send_packet(
                     "login_success",
-                    self.buff_type.pack_uuid(self.uuid) +
-                    self.buff_type.pack_string(self.display_name))
+                    self.buff_type.pack_uuid(self.uuid)
+                    + self.buff_type.pack_string(self.display_name),
+                )
             else:
                 self.send_packet(
                     "login_success",
-                    self.buff_type.pack_string(self.uuid.to_hex()) +
-                    self.buff_type.pack_string(self.display_name))
+                    self.buff_type.pack_string(self.uuid.to_hex())
+                    + self.buff_type.pack_string(self.display_name),
+                )
 
             if self.protocol_version <= 5:
+
                 def make_safe():
                     self.safe_kick.callback(None)
                     self.safe_kick = None
@@ -95,10 +98,9 @@ class ServerProtocol(Protocol):
         if not self.closed and reason is not None:
             # Kick the player if possible.
             if self.protocol_mode == "play":
+
                 def real_kick(*a):
-                    self.send_packet(
-                        "disconnect",
-                        self.buff_type.pack_chat(reason))
+                    self.send_packet("disconnect", self.buff_type.pack_chat(reason))
                     super(ServerProtocol, self).close(reason)
 
                 if self.safe_kick:
@@ -108,8 +110,8 @@ class ServerProtocol(Protocol):
             else:
                 if self.protocol_mode == "login":
                     self.send_packet(
-                        "login_disconnect",
-                        self.buff_type.pack_chat(reason))
+                        "login_disconnect", self.buff_type.pack_chat(reason)
+                    )
                 Protocol.close(self, reason)
         else:
             Protocol.close(self, reason)
@@ -125,7 +127,7 @@ class ServerProtocol(Protocol):
     def auth_ok(self, data):
         """Called when auth with mojang succeeded (online mode only)"""
         self.display_name_confirmed = True
-        self.uuid = UUID.from_hex(data['id'])
+        self.uuid = UUID.from_hex(data["id"])
 
         self.player_joined()
 
@@ -184,7 +186,9 @@ class ServerProtocol(Protocol):
             # 1.19+ may send a Mojang signed public key which needs to be verified
             if self.protocol_version >= 759:
                 try:
-                    self.public_key_data = buff.unpack_optional(buff.unpack_player_public_key)
+                    self.public_key_data = buff.unpack_optional(
+                        buff.unpack_player_public_key
+                    )
                 except ValueError:
                     raise ProtocolError("Unable to parse profile public key")
 
@@ -194,7 +198,9 @@ class ServerProtocol(Protocol):
                         raise ProtocolError("Expired profile public key")
 
                     if self.protocol_version >= 760:
-                        uuid = buff.unpack_optional(buff.unpack_uuid)  # 1.19.1+ may also send player UUID
+                        uuid = buff.unpack_optional(
+                            buff.unpack_uuid
+                        )  # 1.19.1+ may also send player UUID
                         valid = verify_mojang_v2_signature(self.public_key_data, uuid)
                     else:
                         valid = verify_mojang_v1_signature(self.public_key_data)
@@ -210,18 +216,20 @@ class ServerProtocol(Protocol):
 
             # 1.7.x
             if self.protocol_version <= 5:
-                pack_array = lambda a: self.buff_type.pack('h', len(a)) + a
+                pack_array = lambda a: self.buff_type.pack("h", len(a)) + a
 
             # 1.8.x
             else:
-                pack_array = lambda a: self.buff_type.pack_varint(
-                    len(a), max_bits=16) + a
+                pack_array = (
+                    lambda a: self.buff_type.pack_varint(len(a), max_bits=16) + a
+                )
 
             self.send_packet(
                 "login_encryption_request",
                 self.buff_type.pack_string(self.server_id),
                 pack_array(self.factory.public_key),
-                pack_array(self.verify_token))
+                pack_array(self.verify_token),
+            )
 
         else:
             self.login_expecting = None
@@ -238,7 +246,7 @@ class ServerProtocol(Protocol):
 
         # 1.7.x
         if self.protocol_version <= 5:
-            unpack_array = lambda b: b.read(b.unpack('h'))
+            unpack_array = lambda b: b.read(b.unpack("h"))
         # 1.8.x
         else:
             unpack_array = lambda b: b.read(b.unpack_varint(max_bits=16))
@@ -249,23 +257,21 @@ class ServerProtocol(Protocol):
         # 1.19 can now sign the verify token + a salt with the players public key, rather than encrypting the token
         if self.protocol_version >= 759:
             if buff.unpack("?") is False:
-                salt = buff.unpack("Q").to_bytes(8, 'big')
+                salt = buff.unpack("Q").to_bytes(8, "big")
 
         p_verify_token = unpack_array(buff)
 
-        shared_secret = crypto.decrypt_secret(
-            self.factory.keypair,
-            p_shared_secret)
+        shared_secret = crypto.decrypt_secret(self.factory.keypair, p_shared_secret)
 
         if salt is not None:
             try:
-                self.public_key_data.key.verify(p_verify_token, self.verify_token + salt, PKCS1v15(), SHA256())
+                self.public_key_data.key.verify(
+                    p_verify_token, self.verify_token + salt, PKCS1v15(), SHA256()
+                )
             except InvalidSignature:
                 raise ProtocolError("Verify token incorrect")
         else:
-            verify_token = crypto.decrypt_secret(
-                self.factory.keypair,
-                p_verify_token)
+            verify_token = crypto.decrypt_secret(self.factory.keypair, p_verify_token)
 
             if verify_token != self.verify_token:
                 raise ProtocolError("Verify token incorrect")
@@ -278,19 +284,16 @@ class ServerProtocol(Protocol):
 
         # make digest
         digest = crypto.make_digest(
-            self.server_id.encode('ascii'),
-            shared_secret,
-            self.factory.public_key)
+            self.server_id.encode("ascii"), shared_secret, self.factory.public_key
+        )
 
         # do auth
         remote_host = None
         if self.factory.prevent_proxy_connections:
             remote_host = self.remote_addr.host
         deferred = auth.has_joined(
-            self.factory.auth_timeout,
-            digest,
-            self.display_name,
-            remote_host)
+            self.factory.auth_timeout, digest, self.display_name, remote_host
+        )
         deferred.addCallbacks(self.auth_ok, self.auth_failed)
 
     def packet_status_request(self, buff):
@@ -299,22 +302,18 @@ class ServerProtocol(Protocol):
             protocol_version = self.protocol_version
 
         d = {
-            "description": {
-                "text":     self.factory.motd
-            },
+            "description": {"text": self.factory.motd},
             "players": {
-                "online":   len(self.factory.players),
-                "max":      self.factory.max_players
+                "online": len(self.factory.players),
+                "max": self.factory.max_players,
             },
             "version": {
-                "name":     self.factory.minecraft_versions.get(
-                                protocol_version,
-                                "???"),
-                "protocol": protocol_version
-            }
+                "name": self.factory.minecraft_versions.get(protocol_version, "???"),
+                "protocol": protocol_version,
+            },
         }
         if self.factory.icon is not None:
-            d['favicon'] = self.factory.icon
+            d["favicon"] = self.factory.icon
 
         # send status response
         self.send_packet("status_response", self.buff_type.pack_json(d))
@@ -353,5 +352,6 @@ class ServerFactory(Factory):
     def icon(self):
         if self.icon_path is not None:
             with open(self.icon_path, "rb") as fd:
-                return "data:image/png;base64," + base64.encodebytes(
-                    fd.read()).decode('ascii').replace('\n', '')
+                return "data:image/png;base64," + base64.encodebytes(fd.read()).decode(
+                    "ascii"
+                ).replace("\n", "")
