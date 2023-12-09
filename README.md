@@ -1,8 +1,12 @@
 # HomuraMC [![Discord](https://img.shields.io/discord/1141329766889300070.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/967gvTTEWc)
+English | [日本語](https://github.com/HomuraMC/Homura/blob/main/README_JA.md)
+
 HomuraMC is Open Source Minecraft Server Software written in Python.  
+
 [Join Our Discord](https://discord.gg/967gvTTEWc)
 ## How To (Server Admins)
-##### Note: Homura is a pre-alpha version with most features not yet implemented! We recommend that you do not use it in a production environment. 
+> [!WARNING]  
+> Homura is a pre-alpha version with most features not yet implemented! We recommend that you do not use it in a production environment. 
 ### Require
 * Python3
 * Java16 (Homura uses vanilla jar for chunk sending)
