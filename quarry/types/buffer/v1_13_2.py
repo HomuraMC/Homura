@@ -9,13 +9,14 @@ class Buffer1_13_2(Buffer1_13):
         """
 
         if item is None:
-            return cls.pack('?', False)
+            return cls.pack("?", False)
         else:
-            return cls.pack('?', True) + \
-                   cls.pack_varint(
-                       cls.registry.encode('minecraft:item', item)) + \
-                   cls.pack('b', count) + \
-                   cls.pack_nbt(tag)
+            return (
+                cls.pack("?", True)
+                + cls.pack_varint(cls.registry.encode("minecraft:item", item))
+                + cls.pack("b", count)
+                + cls.pack_nbt(tag)
+            )
 
     def unpack_slot(self):
         """
@@ -25,9 +26,9 @@ class Buffer1_13_2(Buffer1_13):
         slot = {}
         item_id = self.unpack_optional(self.unpack_varint)
         if item_id is None:
-            slot['item'] = None
+            slot["item"] = None
         else:
-            slot['item'] = self.registry.decode('minecraft:item', item_id)
-            slot['count'] = self.unpack('b')
-            slot['tag'] = self.unpack_nbt()
+            slot["item"] = self.registry.decode("minecraft:item", item_id)
+            slot["count"] = self.unpack("b")
+            slot["tag"] = self.unpack_nbt()
         return slot

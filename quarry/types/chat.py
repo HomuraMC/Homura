@@ -60,6 +60,7 @@ class Message(object):
     """
     Represents a Minecraft chat message.
     """
+
     def __init__(self, value):
         self.value = value
 
@@ -74,7 +75,7 @@ class Message(object):
 
     @classmethod
     def from_string(cls, string):
-        return cls({'text': string})
+        return cls({"text": string})
 
     def to_string(self, strip_styles=True):
         """
@@ -151,9 +152,15 @@ class SignedMessageHeader(object):
 
     def __eq__(self, other):
         if isinstance(other, SignedMessageHeader):
-            return self.sender == other.sender and self.previous_signature == other.previous_signature
+            return (
+                self.sender == other.sender
+                and self.previous_signature == other.previous_signature
+            )
         elif isinstance(other, LastSeenMessage):
-            return self.sender == other.sender and self.previous_signature == other.signature
+            return (
+                self.sender == other.sender
+                and self.previous_signature == other.signature
+            )
         return NotImplemented
 
 
@@ -163,8 +170,14 @@ class SignedMessageBody(object):
     Includes the message content, optional decorated message, timestamp and salt
     """
 
-    def __init__(self, message: str, timestamp: int, salt: int, decorated_message: Message = None,
-                 last_seen: List[LastSeenMessage] = None):
+    def __init__(
+        self,
+        message: str,
+        timestamp: int,
+        salt: int,
+        decorated_message: Message = None,
+        last_seen: List[LastSeenMessage] = None,
+    ):
         self.message = message
         self.decorated_message = decorated_message
         self.timestamp = timestamp
@@ -178,16 +191,24 @@ class SignedMessageBody(object):
     def digest(self):
         digest = hashes.Hash(hashes.SHA256())
 
-        digest.update(self.salt.to_bytes(8, 'big'))  # Salt
-        digest.update(int(self.timestamp / 1000).to_bytes(8, 'big'))  # Timestamp in seconds
+        digest.update(self.salt.to_bytes(8, "big"))  # Salt
+        digest.update(
+            int(self.timestamp / 1000).to_bytes(8, "big")
+        )  # Timestamp in seconds
         digest.update(self.message.encode("utf-8"))  # Message bytes
-        digest.update((70).to_bytes(1, 'big'))  # Mojang adds a 70 byte after the message for some reason?
+        digest.update(
+            (70).to_bytes(1, "big")
+        )  # Mojang adds a 70 byte after the message for some reason?
 
         if self.decorated_message is not None:
-            digest.update(self.decorated_message.value.encode("utf-8"))  # FIXME: Test this
+            digest.update(
+                self.decorated_message.value.encode("utf-8")
+            )  # FIXME: Test this
 
         for entry in self.last_seen:
-            digest.update((70).to_bytes(1, 'big'))  # Mojang adds a 70 byte before each entry for some reason?
+            digest.update(
+                (70).to_bytes(1, "big")
+            )  # Mojang adds a 70 byte before each entry for some reason?
             digest.update(entry.sender.bytes)
             digest.update(entry.signature)
 
@@ -195,10 +216,12 @@ class SignedMessageBody(object):
 
     def __eq__(self, other):
         if isinstance(other, SignedMessageBody):
-            return self.message == other.message \
-                   and self.decorated_message == other.decorated_message \
-                   and self.timestamp == other.timestamp \
-                   and self.salt == other.salt
+            return (
+                self.message == other.message
+                and self.decorated_message == other.decorated_message
+                and self.timestamp == other.timestamp
+                and self.salt == other.salt
+            )
         return NotImplemented
 
 
@@ -212,10 +235,18 @@ class SignedMessage(object):
      - Optional unsigned message content
     """
 
-    def __init__(self, header: SignedMessageHeader, signature: bytes, signature_version: int, body: SignedMessageBody,
-                 unsigned_content: Message = None):
+    def __init__(
+        self,
+        header: SignedMessageHeader,
+        signature: bytes,
+        signature_version: int,
+        body: SignedMessageBody,
+        unsigned_content: Message = None,
+    ):
         if signature_version < 759:
-            raise Exception("Signed messages are not supported below protocol version 759")
+            raise Exception(
+                "Signed messages are not supported below protocol version 759"
+            )
 
         self.header = header
         self.signature = signature
@@ -224,7 +255,7 @@ class SignedMessage(object):
         self.unsigned_content = unsigned_content
 
     def verify(self, key: RSAPublicKey):
-        data = b''
+        data = b""
 
         if key is None or self.header.sender is None:
             return False
@@ -238,10 +269,17 @@ class SignedMessage(object):
 
         # 1.19
         else:
-            data = data + self.body.salt.to_bytes(8, 'big') \
-                   + self.header.sender.bytes \
-                   + int(self.body.timestamp / 1000).to_bytes(8, 'big') \
-                   + json.dumps(Message.from_string(self.body.message).value, sort_keys=True, separators=(',', ':')).encode('utf-8')
+            data = (
+                data
+                + self.body.salt.to_bytes(8, "big")
+                + self.header.sender.bytes
+                + int(self.body.timestamp / 1000).to_bytes(8, "big")
+                + json.dumps(
+                    Message.from_string(self.body.message).value,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            )
 
         try:
             key.verify(self.signature, data, PKCS1v15(), SHA256())
@@ -251,9 +289,11 @@ class SignedMessage(object):
 
     def __eq__(self, other):
         if isinstance(other, SignedMessage):
-            return self.header == other.header \
-                   and self.body == other.body \
-                   and self.signature == other.signature \
-                   and self.signature_version == other.signature_version \
-                   and self.unsigned_content == other.unsigned_content
+            return (
+                self.header == other.header
+                and self.body == other.body
+                and self.signature == other.signature
+                and self.signature_version == other.signature_version
+                and self.unsigned_content == other.unsigned_content
+            )
         return NotImplemented

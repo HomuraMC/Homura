@@ -35,7 +35,7 @@ class Buffer1_7(object):
         Saves the buffer contents.
         """
 
-        self.buff = self.buff[self.pos:]
+        self.buff = self.buff[self.pos :]
         self.pos = 0
 
     def restore(self):
@@ -60,20 +60,20 @@ class Buffer1_7(object):
         """
 
         if length is None:
-            data = self.buff[self.pos:]
+            data = self.buff[self.pos :]
             self.pos = len(self.buff)
         else:
             if self.pos + length > len(self.buff):
                 raise BufferUnderrun()
 
-            data = self.buff[self.pos:self.pos+length]
+            data = self.buff[self.pos : self.pos + length]
             self.pos += length
 
         return data
 
     def hexdump(self):
-        data = self.buff[self.pos:]
-        lines = ['']
+        data = self.buff[self.pos :]
+        lines = [""]
         bytes_read = 0
         while len(data) > 0:
             data_line, data = data[:16], data[16:]
@@ -82,11 +82,11 @@ class Buffer1_7(object):
             l_str = []
             for i, c in enumerate(data_line):
                 l_hex.append(f"{c:02x}")
-                c_str = data_line[i:i + 1]
+                c_str = data_line[i : i + 1]
                 l_str.append(c_str if c_str in string.printable else ".")
 
-            l_hex.extend(['  '] * (16 - len(l_hex)))
-            l_hex.insert(8, '')
+            l_hex.extend(["  "] * (16 - len(l_hex)))
+            l_hex.insert(8, "")
 
             lines.append(f"{bytes_read:08x}  {' '.join(l_hex)}  |{''.join(l_str)}|")
 
@@ -103,7 +103,7 @@ class Buffer1_7(object):
         ``struct.pack()``.
         """
 
-        return struct.pack(">"+fmt, *fields)
+        return struct.pack(">" + fmt, *fields)
 
     def unpack(self, fmt):
         """
@@ -158,16 +158,16 @@ class Buffer1_7(object):
         """
 
         if val is None:
-            return cls.pack('?', False)
+            return cls.pack("?", False)
         else:
-            return cls.pack('?', True) + packer(val)
+            return cls.pack("?", True) + packer(val)
 
     def unpack_optional(self, unpacker):
         """
         Unpacks a boolean. If it's True, return the value of ``unpacker()``.
         Otherwise return None.
         """
-        if self.unpack('?'):
+        if self.unpack("?"):
             return unpacker()
         else:
             return None
@@ -183,7 +183,9 @@ class Buffer1_7(object):
         number_min = -1 << (max_bits - 1)
         number_max = +1 << (max_bits - 1)
         if not (number_min <= number < number_max):
-            raise ValueError(f"varint does not fit in range: {number_min:d} <= {number:d} < {number_max:d}")
+            raise ValueError(
+                f"varint does not fit in range: {number_min:d} <= {number:d} < {number_max:d}"
+            )
 
         if number < 0:
             number += 1 << 32
@@ -205,7 +207,7 @@ class Buffer1_7(object):
         number = 0
         for i in range(10):
             b = self.unpack("B")
-            number |= (b & 0x7F) << 7*i
+            number |= (b & 0x7F) << 7 * i
             if not b & 0x80:
                 break
 
@@ -215,7 +217,9 @@ class Buffer1_7(object):
         number_min = -1 << (max_bits - 1)
         number_max = +1 << (max_bits - 1)
         if not (number_min <= number < number_max):
-            raise ValueError(f"varint does not fit in range: {number_min:d} <= {number:d} < {number_max:d}")
+            raise ValueError(
+                f"varint does not fit in range: {number_min:d} <= {number:d} < {number_max:d}"
+            )
 
         return number
 
@@ -298,6 +302,7 @@ class Buffer1_7(object):
         Pack a Minecraft chat message.
         """
         from quarry.types import chat
+
         if not isinstance(message, chat.Message):
             message = chat.Message.from_string(message)
         return message.to_bytes()
@@ -307,6 +312,7 @@ class Buffer1_7(object):
         Unpack a Minecraft chat message.
         """
         from quarry.types import chat
+
         return chat.Message.from_buff(self)
 
     # UUID --------------------------------------------------------------------
@@ -339,10 +345,16 @@ class Buffer1_7(object):
                 number = number + (1 << bits)
             return number
 
-        return cls.pack('Q', sum((
-            pack_twos_comp(26, x) << 38,
-            pack_twos_comp(12, y) << 26,
-            pack_twos_comp(26, z))))
+        return cls.pack(
+            "Q",
+            sum(
+                (
+                    pack_twos_comp(26, x) << 38,
+                    pack_twos_comp(12, y) << 26,
+                    pack_twos_comp(26, z),
+                )
+            ),
+        )
 
     def unpack_position(self):
         """
@@ -354,7 +366,7 @@ class Buffer1_7(object):
                 number = number - (1 << bits)
             return number
 
-        number = self.unpack('Q')
+        number = self.unpack("Q")
         x = unpack_twos_comp(26, (number >> 38))
         y = unpack_twos_comp(12, (number >> 26 & 0xFFF))
         z = unpack_twos_comp(26, (number & 0x3FFFFFF))
@@ -388,10 +400,10 @@ class Buffer1_7(object):
         """
 
         if item is None:
-            return cls.pack('h', -1)
+            return cls.pack("h", -1)
 
-        item_id = cls.registry.encode('minecraft:item', item)
-        return cls.pack('hbh', item_id, count, damage) + cls.pack_nbt(tag)
+        item_id = cls.registry.encode("minecraft:item", item)
+        return cls.pack("hbh", item_id, count, damage) + cls.pack_nbt(tag)
 
     def unpack_slot(self):
         """
@@ -399,14 +411,14 @@ class Buffer1_7(object):
         """
 
         slot = {}
-        item_id = self.unpack('h')
+        item_id = self.unpack("h")
         if item_id == -1:
-            slot['item'] = None
+            slot["item"] = None
         else:
-            slot['item'] = self.registry.decode('minecraft:item', item_id)
-            slot['count'] = self.unpack('b')
-            slot['damage'] = self.unpack('h')
-            slot['tag'] = self.unpack_nbt()
+            slot["item"] = self.registry.decode("minecraft:item", item_id)
+            slot["count"] = self.unpack("b")
+            slot["damage"] = self.unpack("h")
+            slot["tag"] = self.unpack_nbt()
 
         return slot
 
@@ -432,8 +444,8 @@ class Buffer1_7(object):
         """
 
         from quarry.types import nbt
-        return nbt.TagRoot.from_buff(self)
 
+        return nbt.TagRoot.from_buff(self)
 
     # Entity metadata ---------------------------------------------------------
 
@@ -445,17 +457,26 @@ class Buffer1_7(object):
         out = b""
         for ty_key, val in metadata.items():
             ty, key = ty_key
-            out += cls.pack('B', ty << 5 | key)
-            if   ty == 0: out += cls.pack('b', val)
-            elif ty == 1: out += cls.pack('h', val)
-            elif ty == 2: out += cls.pack('i', val)
-            elif ty == 3: out += cls.pack('f', val)
-            elif ty == 4: out += cls.pack_string(val)
-            elif ty == 5: out += cls.pack_slot(**val)
-            elif ty == 6: out += cls.pack('iii', *val)
-            elif ty == 7: out += cls.pack_rotation(*val)
-            else: raise ValueError(f"Unknown entity metadata type: {ty:d}")
-        out += cls.pack('B', 127)
+            out += cls.pack("B", ty << 5 | key)
+            if ty == 0:
+                out += cls.pack("b", val)
+            elif ty == 1:
+                out += cls.pack("h", val)
+            elif ty == 2:
+                out += cls.pack("i", val)
+            elif ty == 3:
+                out += cls.pack("f", val)
+            elif ty == 4:
+                out += cls.pack_string(val)
+            elif ty == 5:
+                out += cls.pack_slot(**val)
+            elif ty == 6:
+                out += cls.pack("iii", *val)
+            elif ty == 7:
+                out += cls.pack_rotation(*val)
+            else:
+                raise ValueError(f"Unknown entity metadata type: {ty:d}")
+        out += cls.pack("B", 127)
         return out
 
     def unpack_entity_metadata(self):
@@ -464,24 +485,24 @@ class Buffer1_7(object):
         """
         metadata = {}
         while True:
-            b = self.unpack('B')
+            b = self.unpack("B")
             if b == 127:
                 return metadata
             ty, key = b >> 5, b & 0x1F
             if ty == 0:
-                val = self.unpack('b')
+                val = self.unpack("b")
             elif ty == 1:
-                val = self.unpack('h')
+                val = self.unpack("h")
             elif ty == 2:
-                val = self.unpack('i')
+                val = self.unpack("i")
             elif ty == 3:
-                val = self.unpack('f')
+                val = self.unpack("f")
             elif ty == 4:
                 val = self.unpack_string()
             elif ty == 5:
                 val = self.unpack_slot()
             elif ty == 6:
-                val = self.unpack('iii')
+                val = self.unpack("iii")
             elif ty == 7:
                 val = self.unpack_rotation()
             else:
@@ -513,11 +534,11 @@ class Buffer1_7(object):
         Packs a rotation.
         """
 
-        return cls.pack('fff', x, y, z)
+        return cls.pack("fff", x, y, z)
 
     def unpack_rotation(self):
         """
         Unpacks a rotation
         """
 
-        return self.unpack('fff')
+        return self.unpack("fff")

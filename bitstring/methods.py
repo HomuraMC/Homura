@@ -66,17 +66,20 @@ def pack(fmt: Union[str, List[str]], *values, **kwargs) -> BitStream:
                 continue
             if length is not None:
                 length = int(length)
-            if value is None and name != 'pad':
+            if value is None and name != "pad":
                 # Take the next value from the ones provided
                 value = next(value_iter)
             s._append(BitStream._init_with_token(name, length, value))
     except StopIteration:
-        raise CreationError(f"Not enough parameters present to pack according to the "
-                            f"format. {len(tokens)} values are needed.")
+        raise CreationError(
+            f"Not enough parameters present to pack according to the "
+            f"format. {len(tokens)} values are needed."
+        )
     try:
         next(value_iter)
     except StopIteration:
         # Good, we've used up all the *values.
         return s
     raise CreationError(
-        f"Too many parameters present to pack according to the format. Only {len(tokens)} values were expected.")
+        f"Too many parameters present to pack according to the format. Only {len(tokens)} values were expected."
+    )

@@ -50,9 +50,12 @@ class Profile(object):
             url=SESSION_SERVER + b"join",
             timeout=self.timeout,
             err_type=AuthException,
-            data={"accessToken": self.access_token,
-                  "selectedProfile": self.uuid.to_hex(with_dashes=False),
-                  "serverId": digest})
+            data={
+                "accessToken": self.access_token,
+                "selectedProfile": self.uuid.to_hex(with_dashes=False),
+                "serverId": digest,
+            },
+        )
 
         if not refresh:
             return d1
@@ -61,7 +64,9 @@ class Profile(object):
 
             def _errback(err):
                 self.refresh().chainDeferred(
-                    self.join(digest, refresh=False).chainDeferred(d0))
+                    self.join(digest, refresh=False).chainDeferred(d0)
+                )
+
             d1.addCallbacks(d0.callback, _errback)
             return d0
 
@@ -82,9 +87,8 @@ class Profile(object):
             d0.callback(self)
 
         d1 = self._request(
-            b"refresh",
-            clientToken=self.client_token,
-            accessToken=self.access_token)
+            b"refresh", clientToken=self.client_token, accessToken=self.access_token
+        )
         d1.addCallbacks(_callback, d0.errback)
         return d0
 
@@ -93,14 +97,20 @@ class Profile(object):
             profiles_path = self._get_profiles_path()
 
         with open(profiles_path, "w") as fd:
-            json.dump({
-                "selectedUser": self.uuid.to_hex(False),
-                "clientToken": self.client_token,
-                "authenticationDatabase": {
-                    self.uuid.to_hex(False): {
-                        "displayName": self.display_name,
-                        "accessToken": self.access_token,
-                        "uuid": self.uuid.to_hex(True)}}}, fd)
+            json.dump(
+                {
+                    "selectedUser": self.uuid.to_hex(False),
+                    "clientToken": self.client_token,
+                    "authenticationDatabase": {
+                        self.uuid.to_hex(False): {
+                            "displayName": self.display_name,
+                            "accessToken": self.access_token,
+                            "uuid": self.uuid.to_hex(True),
+                        }
+                    },
+                },
+                fd,
+            )
 
     @classmethod
     def from_credentials(cls, email, password):
@@ -112,10 +122,7 @@ class Profile(object):
         def _errback(err):
             d0.errback(err)
 
-        agent = {
-            "name": "Minecraft",
-            "version": 1
-        }
+        agent = {"name": "Minecraft", "version": 1}
 
         client_token = "foo"  # TODO
 
@@ -124,15 +131,15 @@ class Profile(object):
             username=email,
             password=password,
             agent=agent,
-            clientToken=client_token)
+            clientToken=client_token,
+        )
         d1.addCallbacks(_callback, _errback)
 
         return d0
 
     @classmethod
     def from_token(cls, client_token, access_token, display_name, uuid):
-        obj = cls(client_token, access_token,
-                  display_name, UUID.from_hex(uuid))
+        obj = cls(client_token, access_token, display_name, UUID.from_hex(uuid))
         return obj.validate()
 
     @classmethod
@@ -157,16 +164,18 @@ class Profile(object):
                     continue
                 if display_name and display_name != p_display_name:
                     continue
-                return cls.from_token(client_token, access_token,
-                                      p_display_name, p_uuid)
+                return cls.from_token(
+                    client_token, access_token, p_display_name, p_uuid
+                )
 
     @classmethod
     def _from_response(cls, response):
         return cls(
-            response['clientToken'],
-            response['accessToken'],
-            response['selectedProfile']['name'],
-            UUID.from_hex(response['selectedProfile']['id']))
+            response["clientToken"],
+            response["accessToken"],
+            response["selectedProfile"]["name"],
+            UUID.from_hex(response["selectedProfile"]["id"]),
+        )
 
     @classmethod
     def _request(cls, endpoint, **data):
@@ -174,20 +183,20 @@ class Profile(object):
             url=b"https://authserver.mojang.com/" + endpoint,
             timeout=cls.timeout,
             err_type=ProfileException,
-            data=data)
+            data=data,
+        )
 
     @classmethod
     def _get_profiles_path(cls):
         dot_minecraft = ".minecraft"
-        if sys.platform == 'win32':
-            app_data = os.environ['APPDATA']
-        elif sys.platform == 'darwin':
+        if sys.platform == "win32":
+            app_data = os.environ["APPDATA"]
+        elif sys.platform == "darwin":
             app_data = os.path.expanduser("~/Library/Application Support")
             dot_minecraft = "minecraft"
         else:
             app_data = os.path.expanduser("~")
-        return os.path.join(
-            app_data, dot_minecraft, "launcher_profiles.json")
+        return os.path.join(app_data, dot_minecraft, "launcher_profiles.json")
 
 
 class ProfileCLI(object):
@@ -200,20 +209,23 @@ class ProfileCLI(object):
             "--auth",
             metavar="EMAIL:PASSWORD",
             help="Sets the Mojang account email address and password with "
-                 "which to log in.")
+            "which to log in.",
+        )
         group.add_argument(
             "--session-name",
             metavar="DISPLAY_NAME",
             help="Sets the display name to look up in the "
-                 "~/.minecraft/launcher_profiles.json file. This is used to "
-                 "resume an existing logged-in session from the official "
-                 "client.")
+            "~/.minecraft/launcher_profiles.json file. This is used to "
+            "resume an existing logged-in session from the official "
+            "client.",
+        )
         group.add_argument(
             "--offline-name",
             metavar="DISPLAY_NAME",
             help="Sets the offline display name to use. If none of these "
-                 "options are given, quarry uses 'quarry' as an offline "
-                 "display name.")
+            "options are given, quarry uses 'quarry' as an offline "
+            "display name.",
+        )
         return parser
 
     @classmethod
@@ -224,7 +236,8 @@ class ProfileCLI(object):
         if args.session_name:
             return Profile.from_file(args.session_name)
         return defer.succeed(
-            OfflineProfile.from_display_name(args.offline_name or "quarry"))
+            OfflineProfile.from_display_name(args.offline_name or "quarry")
+        )
 
 
 class PlayerPublicKey:
@@ -240,7 +253,8 @@ def has_joined(timeout, digest, display_name, remote_host=None):
         data["ip"] = remote_host
 
     return http.request(
-        url=SESSION_SERVER + b"hasJoined?" + urlencode(data).encode('ascii'),
+        url=SESSION_SERVER + b"hasJoined?" + urlencode(data).encode("ascii"),
         timeout=timeout,
         err_type=AuthException,
-        expect_content=True)
+        expect_content=True,
+    )

@@ -19,13 +19,13 @@ backend = default_backend()
 PY3 = sys.version_info > (3,)
 _yggdrasil_key = None
 
+
 class Cipher(object):
     def __init__(self):
         self.disable()
 
     def enable(self, key):
-        cipher = ciphers.Cipher(
-            algorithms.AES(key), modes.CFB8(key), backend=backend)
+        cipher = ciphers.Cipher(algorithms.AES(key), modes.CFB8(key), backend=backend)
         self.encryptor = cipher.encryptor()
         self.decryptor = cipher.decryptor()
 
@@ -48,9 +48,8 @@ class Cipher(object):
 
 def make_keypair():
     return rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=1024,
-        backend=default_backend())
+        public_exponent=65537, key_size=1024, backend=default_backend()
+    )
 
 
 def make_server_id():
@@ -77,8 +76,8 @@ def make_digest(*data):
         sha1.update(d)
 
     digest = int(sha1.hexdigest(), 16)
-    if digest >> 39*4 & 0x8:
-        return"-%x" % ((-digest) & (2**(40*4)-1))
+    if digest >> 39 * 4 & 0x8:
+        return "-%x" % ((-digest) & (2 ** (40 * 4) - 1))
     else:
         return "%x" % digest
 
@@ -86,25 +85,20 @@ def make_digest(*data):
 def export_public_key(keypair):
     return keypair.public_key().public_bytes(
         encoding=serialization.Encoding.DER,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo)
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
 
 
 def import_public_key(data):
-    return serialization.load_der_public_key(
-        data=data,
-        backend=default_backend())
+    return serialization.load_der_public_key(data=data, backend=default_backend())
 
 
 def encrypt_secret(public_key, shared_secret):
-    return public_key.encrypt(
-        plaintext=shared_secret,
-        padding=padding.PKCS1v15())
+    return public_key.encrypt(plaintext=shared_secret, padding=padding.PKCS1v15())
 
 
 def decrypt_secret(keypair, data):
-    return keypair.decrypt(
-        ciphertext=data,
-        padding=padding.PKCS1v15())
+    return keypair.decrypt(ciphertext=data, padding=padding.PKCS1v15())
 
 
 def get_yggdrasil_session_key():
@@ -113,12 +107,15 @@ def get_yggdrasil_session_key():
     if _yggdrasil_key is not None:
         return _yggdrasil_key
 
-    yggdrasil_key_path = os.path.abspath(os.path.join(
+    yggdrasil_key_path = os.path.abspath(
+        os.path.join(
             os.path.dirname(__file__),
             "..",
             "data",
             "keys",
-            "yggdrasil_session_pubkey.der"))
+            "yggdrasil_session_pubkey.der",
+        )
+    )
     yggdrasil_key_file = open(yggdrasil_key_path, "rb")
     _yggdrasil_key = import_public_key(yggdrasil_key_file.read())
 
@@ -128,12 +125,16 @@ def get_yggdrasil_session_key():
 # Verify 1.19 signature
 def verify_mojang_v1_signature(data: PlayerPublicKey):
     # Need key in PEM format
-    key_text = base64.encodebytes(data.key.public_bytes(Encoding.DER, PublicFormat.SubjectPublicKeyInfo)).decode('ISO-8859-1')
+    key_text = base64.encodebytes(
+        data.key.public_bytes(Encoding.DER, PublicFormat.SubjectPublicKeyInfo)
+    ).decode("ISO-8859-1")
     e = "-----BEGIN RSA PUBLIC KEY-----\n" + key_text + "-----END RSA PUBLIC KEY-----\n"
 
     try:
         # Signature is timestamp as string + public key in PEM format
-        get_yggdrasil_session_key().verify(data.signature, bytes(str(data.expiry) + e, 'ascii'), PKCS1v15(), SHA1())
+        get_yggdrasil_session_key().verify(
+            data.signature, bytes(str(data.expiry) + e, "ascii"), PKCS1v15(), SHA1()
+        )
         return True
     except InvalidSignature:
         return False
@@ -146,9 +147,15 @@ def verify_mojang_v2_signature(data: PlayerPublicKey, uuid):
 
     try:
         # Signature is uuid bytes + timestamp bytes + public key bytes
-        key_bytes = data.key.public_bytes(Encoding.DER, PublicFormat.SubjectPublicKeyInfo)
-        get_yggdrasil_session_key()\
-            .verify(data.signature, uuid.bytes + data.expiry.to_bytes(8, 'big') + key_bytes, PKCS1v15(), SHA1())
+        key_bytes = data.key.public_bytes(
+            Encoding.DER, PublicFormat.SubjectPublicKeyInfo
+        )
+        get_yggdrasil_session_key().verify(
+            data.signature,
+            uuid.bytes + data.expiry.to_bytes(8, "big") + key_bytes,
+            PKCS1v15(),
+            SHA1(),
+        )
         return True
     except InvalidSignature:
         return False
