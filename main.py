@@ -206,8 +206,8 @@ for x in range(-10, 11):
 
 logger.info("Spawn chunks succesfully loaded!")
 for plugin in builtins.plugins:
-	if getattr(plugin.HomuraMCPlugin,'onLoad',False) != False:
-		plugin.HomuraMCPlugin.onLoad()
+	if getattr(plugin.HomuraMCPlugin,'onSpawnChunkLoad',False) != False:
+		plugin.HomuraMCPlugin.onSpawnChunkLoad()
 
 class HomuraServerFactory(ServerFactory):
 	protocol = HomuraServerProtocol

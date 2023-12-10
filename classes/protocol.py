@@ -12,6 +12,7 @@ from quarry.types.registry import LookupRegistry
 from twisted.internet import reactor
 
 from .lognk import log
+import importlib
 
 ini = configparser.ConfigParser()
 ini.read("./Homura.ini", "UTF-8")
@@ -89,7 +90,7 @@ class HomuraServerProtocol(ServerProtocol):
 			if getattr(plugin.HomuraMCPlugin,'onJoinPlayer',False) != False:
 				joinMessage = plugin.HomuraMCPlugin.onJoinPlayer(self)
 		# Announce player join
-		self.factory.send_chat(joinMessage % self.display_name)
+		self.factory.send_chat(joinMessage)
 		#log.logger.info(f"\033[033m{self.display_name} has joined.\033[0m")
 
 	def send_perimiter(self, size, thread=True):
@@ -123,7 +124,7 @@ class HomuraServerProtocol(ServerProtocol):
 			if getattr(plugin.HomuraMCPlugin,'onQuitPlayer',False) != False:
 				quitMessage = plugin.HomuraMCPlugin.onQuitPlayer(self)
 		# Announce player left
-		self.factory.send_chat(quitMessage % self.display_name)
+		self.factory.send_chat(quitMessage)
 		#log.logger.info(f"{self.display_name} has left.")
 
 
@@ -249,32 +250,20 @@ class HomuraServerProtocol(ServerProtocol):
 			pll = self.factory.getPlayersCount()
 			self.factory.send_msg(f"{pll} players online: {pltt}", self.uuid)
 		elif p_text == "/chest":
-			self.send_packet('open_window',
-					self.buff_type.pack_varint(1),
-					self.buff_type.pack_varint(5),
-					self.buff_type.pack_chat("large chest")
+			self.open_gui(1,5,"Large chest")
+		elif p_text == "/title":
+			self.send_packet('title',
+					self.buff_type.pack_varint(0),
+					self.buff_type.pack_chat("§aHey"),
 				)
 		elif p_text == "/reloadplugins":
-			self.factory.send_msg(f"Reloading Plugins...", self.display_name)
-			builtins.plugins = []
-			for file in os.listdir("./plugins/"):
-				base, ext = os.path.splitext(file)
-				if ext == '.py':
-					log.logger.info(
-						"Python Script {} is loading...".format(file)
-					)
-					plpy = importlib.import_module('plugins.{}'.format(base))
-					isplugin = getattr(plpy,'HomuraMCPlugin',False)
-					if isplugin == False:
-						log.logger.warning(
-							"Python Script {} is Not HomuraMC Plugin!".format(file)
-						)
-					else:
-						builtins.plugins.append(plpy)
-						log.logger.info(
-							"Python Script {} is Loading Successful.".format(file)
-						)
-			self.factory.send_msg(f"Reloading Successful!", self.display_name)
+			log.logger.info("Reloading Plugins...")
+			for plugin in builtins.plugins:
+				if getattr(plugin.HomuraMCPlugin,'onReloadPlugin',False) != False:
+					plugin.HomuraMCPlugin.onReloadPlugin(self)
+				importlib.reload(plugin)
+				log.logger.info(f"Plugin {plugin} reload successful.")
+			log.logger.info("Reloading Successful!")
 		else:
 			self.factory.send_chat("<%s> %s" % (self.display_name, p_text))
 			log.logger.info(f"<{self.display_name}> {p_text}")
@@ -284,3 +273,32 @@ class HomuraServerProtocol(ServerProtocol):
 		p_channel_data = buff.read()
 		# do something with the message
 		log.logger.info(f"{self.display_name} pm> {p_channel_name}")
+
+	def packet_tab_complete(self,buff):
+		string, iscmd, haspos, pos = buff.unpack('s??q')
+		x = pos >> 38
+		y = pos << 52 >> 52 
+		z = pos << 26 >> 38
+		log.logger.info(f"{self.display_name} tab> {string}")
+		self.send_packet('tab_complete',
+				self.buff_type.pack_varint(2),
+				self.buff_type.pack_string("Powered by HomuraMC"),
+				self.buff_type.pack_string("HomuraMC by nennneko5787"),
+			)
+
+	def open_gui(self, winid:int, wintype:int, title:str, slots:int = 0, entityid:int = 0):
+		if entityid == 0:
+			self.send_packet('open_window',
+					self.buff_type.pack_varint(winid),
+					self.buff_type.pack_varint(wintype),
+					self.buff_type.pack_chat(title),
+					self.buff_type.pack_varint(slots)
+				)
+		else:
+			self.send_packet('open_window',
+					self.buff_type.pack_varint(winid),
+					self.buff_type.pack_varint(wintype),
+					self.buff_type.pack_chat(title),
+					self.buff_type.pack_varint(slots),
+					self.buff_type.pack_varint(entityid)
+				)
