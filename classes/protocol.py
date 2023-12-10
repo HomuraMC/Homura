@@ -91,7 +91,7 @@ class HomuraServerProtocol(ServerProtocol):
 				joinMessage = plugin.HomuraMCPlugin.onJoinPlayer(self)
 		# Announce player join
 		self.factory.send_chat(joinMessage)
-		#log.logger.info(f"\033[033m{self.display_name} has joined.\033[0m")
+		log.logger.info(joinMessage)
 
 	def send_perimiter(self, size, thread=True):
 		for x in range(-size, size + 1):
@@ -125,7 +125,7 @@ class HomuraServerProtocol(ServerProtocol):
 				quitMessage = plugin.HomuraMCPlugin.onQuitPlayer(self)
 		# Announce player left
 		self.factory.send_chat(quitMessage)
-		#log.logger.info(f"{self.display_name} has left.")
+		log.logger.info(quitMessage)
 
 
 	def update_keep_alive(self):
@@ -259,10 +259,12 @@ class HomuraServerProtocol(ServerProtocol):
 		elif p_text == "/reloadplugins":
 			log.logger.info("Reloading Plugins...")
 			for plugin in builtins.plugins:
+				name = plugin.HomuraMCPluginBackends.getPluginName()
+				log.logger.info(f"Plugin {name} reloading...")
 				if getattr(plugin.HomuraMCPlugin,'onReloadPlugin',False) != False:
 					plugin.HomuraMCPlugin.onReloadPlugin(self)
 				importlib.reload(plugin)
-				log.logger.info(f"Plugin {plugin} reload successful.")
+				log.logger.info(f"Plugin {name} reload successful.")
 			log.logger.info("Reloading Successful!")
 		else:
 			self.factory.send_chat("<%s> %s" % (self.display_name, p_text))
