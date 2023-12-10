@@ -259,12 +259,11 @@ class HomuraServerProtocol(ServerProtocol):
 		elif p_text == "/reloadplugins":
 			log.logger.info("Reloading Plugins...")
 			for plugin in builtins.plugins:
-				name = plugin.HomuraMCPluginBackends.getPluginName()
-				log.logger.info(f"Plugin {name} reloading...")
+				log.logger.info(f"Plugin {plugin.HomuraMCPluginBackends.getPluginName()} reloading...")
 				if getattr(plugin.HomuraMCPlugin,'onReloadPlugin',False) != False:
 					plugin.HomuraMCPlugin.onReloadPlugin(self)
 				importlib.reload(plugin)
-				log.logger.info(f"Plugin {name} reload successful.")
+				log.logger.info(f"Plugin {plugin.HomuraMCPluginBackends.getPluginName()} reload successful.")
 			log.logger.info("Reloading Successful!")
 		else:
 			self.factory.send_chat("<%s> %s" % (self.display_name, p_text))
