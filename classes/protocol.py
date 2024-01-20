@@ -1,15 +1,14 @@
 import configparser
 import os
 import math
-from . import PluginLoader
-from . import WorldData
+from .PluginLoader import PluginLoader
+from .WorldData import WorldData
 
 from quarry.net.server import ServerProtocol
 from quarry.data.data_packs import data_packs, dimension_types
 from quarry.types.nbt import RegionFile, TagCompound, TagLongArray, TagRoot
 from quarry.types.chunk import BlockArray, PackedArray
 from quarry.net.protocol import Protocol
-from quarry.types.registry import LookupRegistry
 from twisted.internet import reactor
 
 from .lognk import log
@@ -21,12 +20,6 @@ ini.read("./Homura.ini", "UTF-8")
 
 class HomuraServerProtocol(ServerProtocol):
 	global ini
-
-	emptyHeight = TagRoot({"": TagCompound({
-		"MOTION_BLOCKING": TagLongArray(PackedArray.empty_height())
-	})})
-
-	registry = LookupRegistry.from_jar(os.path.join(os.getcwd(), "assets", "registry", "server.jar"))
 
 	class chunk:
 		x = 0
@@ -88,13 +81,13 @@ class HomuraServerProtocol(ServerProtocol):
 		for x in range(-size, size + 1):
 			for z in range(-size, size + 1):
 				if x == -size or x == size or z == -size or z == size:
-					WorldData.queue[f'{self.uuid}'].append([x, z, True, emptyHeight, [None]*16, [1]*256, []])
+					WorldData.queue[f'{self.uuid}'].append([x, z, True, WorldData.emptyHeight, [None]*16, [1]*256, []])
 
 	def send_empty_full(self, size):
 		for x in range(-size, size + 1):
 			for z in range(-size, size + 1):
 				if x == 0 and z == 0: continue
-				WorldData.queue[f'{self.uuid}'].append([x, z, True, emptyHeight, [None]*16, [1]*256, []])
+				WorldData.queue[f'{self.uuid}'].append([x, z, True, WorldData.emptyHeight, [None]*16, [1]*256, []])
 
 	def player_left(self):
 		ServerProtocol.player_left(self)
@@ -185,7 +178,7 @@ class HomuraServerProtocol(ServerProtocol):
 			if 'Palette' in section.value:
 				y = section.value["Y"].value
 				if 0 <= y < 16:
-					blocks = BlockArray.from_nbt(section, registry)
+					blocks = BlockArray.from_nbt(section, WorldData.registry)
 					block_light = None
 					sky_light = None
 					sections[y] = (blocks, block_light, sky_light)

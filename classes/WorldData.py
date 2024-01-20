@@ -1,7 +1,15 @@
 import os
 from quarry.types.nbt import RegionFile
+from quarry.types.nbt import RegionFile, TagCompound, TagLongArray, TagRoot
+from quarry.types.chunk import BlockArray, PackedArray
+from quarry.types.registry import LookupRegistry
 
 class WorldData():
+	emptyHeight = TagRoot({"": TagCompound({
+		"MOTION_BLOCKING": TagLongArray(PackedArray.empty_height())
+	})})
+	registry = LookupRegistry.from_jar(os.path.join(os.getcwd(), "assets", "registry", "server.jar"))
+
 	sent_chunks = {}
 	counter = {}
 
