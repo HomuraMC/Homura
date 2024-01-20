@@ -56,7 +56,7 @@ if not os.path.isfile(
 
 if Config.data["eula"] != True:
 	logger.error(
-		"You do not agree with the eula! The eula can be read at https://aka.ms/MinecraftEULA and to agree, set the eula to True in Homura.ini."
+		"You do not agree with the eula! The eula can be read at https://aka.ms/MinecraftEULA and to agree, set the eula to True in config.yml."
 	)
 	print("Press Key to Continue...")
 	input()
