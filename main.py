@@ -1,19 +1,16 @@
 import configparser
 import sys
 import os
-import importlib
-import builtins
 
 from twisted.internet import reactor
 from quarry.net.server import ServerFactory
-from quarry.types.nbt import RegionFile
-import requests
-from tqdm import tqdm
 
 from classes import toBool
 from classes import log
 from classes import HomuraServerProtocol
 from classes import download
+from classes.WorldData import WorldData
+from classes.PluginLoader import PluginLoader
 
 reactor.suggestThreadPoolSize(50)
 
@@ -149,76 +146,16 @@ if toBool(ini["HomuraMC"]["eula"]) != True:
 	input()
 	sys.exit()
 
-builtins.plugins = []
-for file in os.listdir("./plugins/"):
-	base, ext = os.path.splitext(file)
-	if ext == ".py":
-		logger.info("Python Script {} is loading...".format(file))
-		plpy = importlib.import_module("plugins.{}".format(base))
-		isplugin = getattr(plpy, "HomuraMCPlugin", False)
-		if isplugin == False:
-			logger.warning("Python Script {} is Not HomuraMC Plugin!".format(file))
-		else:
-			builtins.plugins.append(plpy)
-			logger.info("Python Script {} is Loading Successful.".format(plpy.HomuraMCPluginBackends.getPluginName()))
-			"""
-			What
-			[14:42:03] INFO Python Script MyCoolPlugin.py is loading...
-			[14:42:03] INFO Python Script MyCoolPlugin.py is Loading Successful.
-			Traceback (most recent call last):
-			File "/mnt/c/HomuraMC/Homura/main.py", line 164, in <module>
-				builtins.plugins[plpy]["name"] = plpy.HomuraMCPluginBackends.getPluginName()
-			TypeError: list indices must be integers or slices, not module
-			builtins.plugins[plpy]["name"] = plpy.HomuraMCPluginBackends.getPluginName()
-			builtins.plugins[plpy]["description"] = plpy.HomuraMCPluginBackends.getPluginDescription()
-			builtins.plugins[plpy]["authors"] = plpy.HomuraMCPluginBackends.getPluginAuthors()
-			builtins.plugins[plpy]["version"] = plpy.HomuraMCPluginBackends.getPluginVersion()
-			"""
-			if getattr(plpy.HomuraMCPlugin, "onLoad", False) != False:
-				plpy.HomuraMCPlugin.onLoad()
-
-builtins.sent_chunks = {}
-builtins.counter = {}
-
-builtins.loaded_regions = {}
-builtins.loaded_chunks = {}
-
-builtins.queue = {}
+pluginloader = PluginLoader()
+pflag = pluginloader.loadPlugins()
 
 logger.info("Loading spawn chunks, please wait...")
 
-for x in range(-10, 11):
-	for z in range(-10, 11):
-		x2 = x * 16
-		z2 = z * 16
-
-		rx, x2 = divmod(x2, 512)
-		rz, z2 = divmod(z2, 512)
-		cx, x2 = divmod(x2, 16)
-		cz, z2 = divmod(z2, 16)
-
-		if (str(rx) + ";" + str(rz)) in builtins.loaded_regions:
-			region = builtins.loaded_regions[str(rx) + ";" + str(rz)]
-		else:
-			region = RegionFile(
-				os.path.join(
-					os.getcwd(), "assets", "world", "region", "r.%d.%d.mca" % (rx, rz)
-				)
-			)
-			builtins.loaded_regions[str(rx) + ";" + str(rz)] = region
-
-		try:
-			if not (str(cx) + ";" + str(cz)) in builtins.loaded_chunks:
-				builtins.loaded_chunks[
-					str(rx) + ";" + str(rz) + "#" + str(cx) + ";" + str(cz)
-				] = region.load_chunk(cx, cz)
-		except ValueError as e:
-			continue
-		except OSError as e:
-			continue
+worlddata = WorldData()
+wflag = worlddata.loadChunk()
 
 logger.info("Spawn chunks succesfully loaded!")
-for plugin in builtins.plugins:
+for plugin in pluginloader.plugins:
 	if getattr(plugin.HomuraMCPlugin,'onSpawnChunkLoad',False) != False:
 		plugin.HomuraMCPlugin.onSpawnChunkLoad()
 
