@@ -4,3 +4,5 @@ __pycache__
 server.jar
 /assets/java
 /plugins/MyCoolPlugin.py
+/server_icon.png
+/config.yml

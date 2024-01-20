@@ -12,15 +12,10 @@ from quarry.net.protocol import Protocol
 from twisted.internet import reactor
 
 from .lognk import log
-import importlib
-
-ini = configparser.ConfigParser()
-ini.read("./Homura.ini", "UTF-8")
+from .Config import Config
 
 
 class HomuraServerProtocol(ServerProtocol):
-	global ini
-
 	class chunk:
 		x = 0
 		z = 0
@@ -288,6 +283,7 @@ class HomuraServerProtocol(ServerProtocol):
 		main_hand = buff.unpack_varint()
 		log.logger.info(f"{self.display_name} client settings: {locale},{view_distance},{chat_mode},{chat_colors},{displayed_skin_parts},{main_hand}")
 
+	# Short (???)
 	# def packet_advancement_tab(self,buff):
 	#	action = buff.unpack_varint()
 	#	tab = buff.unpack_optional(buff.unpack_varint())
