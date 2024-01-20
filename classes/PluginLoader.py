@@ -35,3 +35,11 @@ class PluginLoader():
 					if getattr(plpy.HomuraMCPlugin, "onLoad", False) != False:
 						plpy.HomuraMCPlugin.onLoad()
 		return True
+
+	def reloadPlugins(self):
+		for plugin in PluginLoader.plugins:
+			log.logger.info(f"Plugin {plugin.HomuraMCPluginBackends.getPluginName()} reloading...")
+			if getattr(plugin.HomuraMCPlugin,'onReloadPlugin',False) != False:
+				plugin.HomuraMCPlugin.onReloadPlugin(self)
+			importlib.reload(plugin)
+			log.logger.info(f"Plugin {plugin.HomuraMCPluginBackends.getPluginName()} reload successful.")

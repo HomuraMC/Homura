@@ -51,7 +51,7 @@ class HomuraServerProtocol(ServerProtocol):
 
 		self.send_packet("player_position_and_look",
 			self.buff_type.pack("dddff?",
-				8, 200, 8, 0, 90, 0b00000),
+				8, 63, 8, 0, 90, 0b00000),
 			self.buff_type.pack_varint(0))
 		WorldData.sent_chunks[f'{self.uuid}'] = False
 		WorldData.counter[f'{self.uuid}'] = 0
@@ -233,12 +233,8 @@ class HomuraServerProtocol(ServerProtocol):
 				)
 		elif p_text == "/reloadplugins":
 			log.logger.info("Reloading Plugins...")
-			for plugin in PluginLoader.plugins:
-				log.logger.info(f"Plugin {plugin.HomuraMCPluginBackends.getPluginName()} reloading...")
-				if getattr(plugin.HomuraMCPlugin,'onReloadPlugin',False) != False:
-					plugin.HomuraMCPlugin.onReloadPlugin(self)
-				importlib.reload(plugin)
-				log.logger.info(f"Plugin {plugin.HomuraMCPluginBackends.getPluginName()} reload successful.")
+			pluginloader = PluginLoader()
+			pluginloader.reloadPlugins()
 			log.logger.info("Reloading Successful!")
 		else:
 			self.factory.send_chat("<%s> %s" % (self.display_name, p_text))
@@ -254,10 +250,8 @@ class HomuraServerProtocol(ServerProtocol):
 				quitMessage = plugin.HomuraMCPlugin.onPluginMessage(self,buff)
 
 	def packet_tab_complete(self,buff):
-		string, iscmd, haspos, pos = buff.unpack('s??q')
-		x = pos >> 38
-		y = pos << 52 >> 52 
-		z = pos << 26 >> 38
+		string, iscmd, haspos = buff.unpack('s??')
+		x,y,z = buff.unpack_position()
 		log.logger.info(f"{self.display_name} tab> {string}")
 		self.send_packet('tab_complete',
 				self.buff_type.pack_varint(2),
@@ -276,9 +270,31 @@ class HomuraServerProtocol(ServerProtocol):
 		x,y,z = buff.unpack_position()
 		face = buff.unpack('b')
 		log.logger.info(f"{self.display_name} block placement: {status},({x},{y},{z}),{face}")
+	
+	def packet_entity_action(self,buff):
+		entity = buff.unpack_varint()
+		action = buff.unpack_varint()
+		jump_boost = buff.unpack_varint()
+		log.logger.info(f"{self.display_name} entity action: {entity},{action},{jump_boost}")
 
-	def open_gui(self, winid:int, wintype:int, title:str, slots:int = 0, entityid:int = 0):
-		if entityid == 0:
+	def packet_player_abilities(self,buff):
+		flag = buff.unpack('b')
+		log.logger.info(f"{self.display_name} player abilities: {flag}")
+
+	def packet_client_settings(self,buff):
+		locale,view_distance = buff.unpack('x5sb')
+		chat_mode = buff.unpack_varint()
+		chat_colors,displayed_skin_parts, = buff.unpack('?B')
+		main_hand = buff.unpack_varint()
+		log.logger.info(f"{self.display_name} client settings: {locale},{view_distance},{chat_mode},{chat_colors},{displayed_skin_parts},{main_hand}")
+
+	# def packet_advancement_tab(self,buff):
+	#	action = buff.unpack_varint()
+	#	tab = buff.unpack_optional(buff.unpack_varint())
+	#	log.logger.info(f"{self.display_name} advancement tab: {action},{tab}")
+
+	def open_gui(self, winid:int, wintype:int, title:str, slots:int = 0, entityid:int = -1):
+		if entityid == -1:
 			self.send_packet('open_window',
 					self.buff_type.pack_varint(winid),
 					self.buff_type.pack_varint(wintype),

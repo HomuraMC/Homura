@@ -147,12 +147,12 @@ if toBool(ini["HomuraMC"]["eula"]) != True:
 	sys.exit()
 
 pluginloader = PluginLoader()
-pflag = pluginloader.loadPlugins()
+pluginloader.loadPlugins()
 
 logger.info("Loading spawn chunks, please wait...")
 
 worlddata = WorldData()
-wflag = worlddata.loadChunk()
+worlddata.loadChunk()
 
 logger.info("Spawn chunks succesfully loaded!")
 for plugin in PluginLoader.plugins:
