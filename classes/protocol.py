@@ -66,25 +66,6 @@ class HomuraServerProtocol(ServerProtocol):
 		self.ticker.add_loop(20, self.update_keep_alive)
 		self.ticker.add_loop(1, self.send_next_from_queue)	
 
-		self.send_packet("player_info",
-			self.buff_type.pack_varint(0),
-			self.buff_type.pack_varint(1),
-			self.buff_type.pack_uuid(self.uuid),
-
-			self.buff_type.pack_string(self.display_name),
-			self.buff_type.pack_varint(4),
-			
-			self.buff_type.pack_string("textures"),
-			self.buff_type.pack_string("ewogICJ0aW1lc3RhbXAiIDogMTcwMjEyMzg4OTEyMCwKICAicHJvZmlsZUlkIiA6ICI1ODVjNWYzMjQwMjE0ZDc4OWU5MzAyZjEzYjVlMDI3MiIsCiAgInByb2ZpbGVOYW1lIiA6ICJuZW5ubmVrbzU3ODciLAogICJ0ZXh0dXJlcyIgOiB7CiAgICAiU0tJTiIgOiB7CiAgICAgICJ1cmwiIDogImh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZDkxZDFmMzk3MWQxYzcyZDZjODAyNWJkMmJhOTYyM2YyNTY4ZTg4NWM2N2QwNjIzZGUwMmIyOTVhM2Q1OTI2YiIsCiAgICAgICJtZXRhZGF0YSIgOiB7CiAgICAgICAgIm1vZGVsIiA6ICJzbGltIgogICAgICB9CiAgICB9CiAgfQp9"),
-			self.buff_type.pack("?",True),
-			self.buff_type.pack_string("ZUGZvIdFgGhH9H2Rl0/ghfG6EJ7uc+COSYcJUi2+4Cus56dn1pdfwgzixsbhUBI1GEyxtAqhaSKy4dCfshWVG8lESm+BkXaQWdLdbnGv1+0cXQIglGjZrof35E5QziWcDLJRGr61Nxsqtf17bzBcKY5ssbdonzH9W5SmBc/Az0MKTbim0Bw50rpssQ0i5mde0uE4FEgip/uGuaEdBx3kd72Qod8pspYfPG0HQDbhFcvSl/GYb/2Jsb0pYE300Y9lmZrjeInqxLJBfKeK2e8HBOXn6gp8UBBn0zFpkKBjxXQEJ0rvBnLJxGEPEJo3rUVbD7/m4JU7OciwFkOga/qvP2ySIGZueQmZheABbKWOhNUWA62YceeWpfn+OlWizd3v+HD7U2XCO+bFZsws1wnH2BHuf4IpN3GXM0C7tRt6NJad0vO7dHg6HoOR7O7O0nRkS7hPXL2gLcVoEPwtEraF6aMG+9dY31eL5cQ8PiYWBx3gROIg2x62SjdJEy2pBwAn4i+0J2/UwgptHilFH3JHYyq7waNmYpiwOubnydDmAkQZcnXxRqtIQCwc9CT5mvXZGGqX4Ryvq/z4N/32S3UIeLWodpAxmyzZKd27FgMp0c2kJymQ2IlXQF8S3xUMziWeX5GeFx7mAftoW3IfU4DuyHpnRKBuVSQqanwYWID7mOw="),
-
-			self.buff_type.pack_varint(2),
-			self.buff_type.pack_varint(0),
-			self.buff_type.pack("?",True),
-			self.buff_type.pack_chat(self.display_name)
-		)
-
 		joinMessage = "\u00a7e%s has joined."
 		for plugin in builtins.plugins:
 			if getattr(plugin.HomuraMCPlugin,'onJoinPlayer',False) != False:
@@ -250,7 +231,7 @@ class HomuraServerProtocol(ServerProtocol):
 			pll = self.factory.getPlayersCount()
 			self.factory.send_msg(f"{pll} players online: {pltt}", self.uuid)
 		elif p_text == "/chest":
-			self.open_gui(1,5,"Large chest")
+			self.open_gui(1,5,"Large chest",1)
 		elif p_text == "/title":
 			self.send_packet('title',
 					self.buff_type.pack_varint(0),
@@ -274,6 +255,9 @@ class HomuraServerProtocol(ServerProtocol):
 		p_channel_data = buff.read()
 		# do something with the message
 		log.logger.info(f"{self.display_name} pm> {p_channel_name}")
+		for plugin in builtins.plugins:
+			if getattr(plugin.HomuraMCPlugin,'onPluginMessage',False) != False:
+				quitMessage = plugin.HomuraMCPlugin.onPluginMessage(self,buff)
 
 	def packet_tab_complete(self,buff):
 		string, iscmd, haspos, pos = buff.unpack('s??q')
@@ -286,6 +270,18 @@ class HomuraServerProtocol(ServerProtocol):
 				self.buff_type.pack_string("Powered by HomuraMC"),
 				self.buff_type.pack_string("HomuraMC by nennneko5787"),
 			)
+
+	def packet_player_digging(self,buff):
+		status = buff.unpack_varint()
+		x,y,z = buff.unpack_position()
+		face = buff.unpack('b')
+		log.logger.info(f"{self.display_name} block digging: {status},({x},{y},{z}),{face}")
+
+	def packet_player_block_placement(self,buff):
+		status = buff.unpack_varint()
+		x,y,z = buff.unpack_position()
+		face = buff.unpack('b')
+		log.logger.info(f"{self.display_name} block placement: {status},({x},{y},{z}),{face}")
 
 	def open_gui(self, winid:int, wintype:int, title:str, slots:int = 0, entityid:int = 0):
 		if entityid == 0:

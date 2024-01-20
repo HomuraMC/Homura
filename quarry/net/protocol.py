@@ -234,8 +234,8 @@ class Protocol(protocol.Protocol, PacketDispatcher, object):
                     self.packet_received(buff, name)
                 except BufferUnderrun:
                     raise ProtocolError("Packet is too short: %s" % name)
-                if len(buff) > 0:
-                    raise ProtocolError("Packet is too long: %s" % name)
+                # if len(buff) > 0:
+                #    raise ProtocolError("Packet is too long: %s" % name)
 
                 # Reset the inactivity timer
                 self.connection_timer.restart()
