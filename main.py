@@ -155,7 +155,7 @@ worlddata = WorldData()
 wflag = worlddata.loadChunk()
 
 logger.info("Spawn chunks succesfully loaded!")
-for plugin in pluginloader.plugins:
+for plugin in PluginLoader.plugins:
 	if getattr(plugin.HomuraMCPlugin,'onSpawnChunkLoad',False) != False:
 		plugin.HomuraMCPlugin.onSpawnChunkLoad()
 

@@ -2,14 +2,13 @@ import os
 from quarry.types.nbt import RegionFile
 
 class WorldData():
-	def __init__(self):
-		self.sent_chunks = {}
-		self.counter = {}
+	sent_chunks = {}
+	counter = {}
 
-		self.loaded_regions = {}
-		self.loaded_chunks = {}
+	loaded_regions = {}
+	loaded_chunks = {}
 
-		self.queue = {}
+	queue = {}
 
 	def loadChunk(self):
 		for x in range(-10, 11):
@@ -22,19 +21,19 @@ class WorldData():
 				cx, x2 = divmod(x2, 16)
 				cz, z2 = divmod(z2, 16)
 
-				if (str(rx) + ";" + str(rz)) in self.loaded_regions:
-					region = self.loaded_regions[str(rx) + ";" + str(rz)]
+				if (str(rx) + ";" + str(rz)) in WorldData.loaded_regions:
+					region = WorldData.loaded_regions[str(rx) + ";" + str(rz)]
 				else:
 					region = RegionFile(
 						os.path.join(
 							os.getcwd(), "assets", "world", "region", "r.%d.%d.mca" % (rx, rz)
 						)
 					)
-					self.loaded_regions[str(rx) + ";" + str(rz)] = region
+					WorldData.loaded_regions[str(rx) + ";" + str(rz)] = region
 
 				try:
-					if not (str(cx) + ";" + str(cz)) in self.loaded_chunks:
-						self.loaded_chunks[
+					if not (str(cx) + ";" + str(cz)) in WorldData.loaded_chunks:
+						WorldData.loaded_chunks[
 							str(rx) + ";" + str(rz) + "#" + str(cx) + ";" + str(cz)
 						] = region.load_chunk(cx, cz)
 				except ValueError as e:

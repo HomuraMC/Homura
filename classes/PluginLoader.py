@@ -5,8 +5,7 @@ from classes import log
 logger = log.logger
 
 class PluginLoader():
-	def __init__(self):
-		self.plugins = []
+	plugins = []
 
 	def loadPlugins(self):
 		for file in os.listdir("./plugins/"):
@@ -18,7 +17,7 @@ class PluginLoader():
 				if isplugin == False:
 					logger.warning("Python Script {} is Not HomuraMC Plugin!".format(file))
 				else:
-					self.plugins.append(plpy)
+					PluginLoader.plugins.append(plpy)
 					logger.info("Python Script {} is Loading Successful.".format(plpy.HomuraMCPluginBackends.getPluginName()))
 					"""
 					What
@@ -26,12 +25,12 @@ class PluginLoader():
 					[14:42:03] INFO Python Script MyCoolPlugin.py is Loading Successful.
 					Traceback (most recent call last):
 					File "/mnt/c/HomuraMC/Homura/main.py", line 164, in <module>
-						self.plugins[plpy]["name"] = plpy.HomuraMCPluginBackends.getPluginName()
+						PluginLoader.plugins[plpy]["name"] = plpy.HomuraMCPluginBackends.getPluginName()
 					TypeError: list indices must be integers or slices, not module
-					self.plugins[plpy]["name"] = plpy.HomuraMCPluginBackends.getPluginName()
-					self.plugins[plpy]["description"] = plpy.HomuraMCPluginBackends.getPluginDescription()
-					self.plugins[plpy]["authors"] = plpy.HomuraMCPluginBackends.getPluginAuthors()
-					self.plugins[plpy]["version"] = plpy.HomuraMCPluginBackends.getPluginVersion()
+					PluginLoader.plugins[plpy]["name"] = plpy.HomuraMCPluginBackends.getPluginName()
+					PluginLoader.plugins[plpy]["description"] = plpy.HomuraMCPluginBackends.getPluginDescription()
+					PluginLoader.plugins[plpy]["authors"] = plpy.HomuraMCPluginBackends.getPluginAuthors()
+					PluginLoader.plugins[plpy]["version"] = plpy.HomuraMCPluginBackends.getPluginVersion()
 					"""
 					if getattr(plpy.HomuraMCPlugin, "onLoad", False) != False:
 						plpy.HomuraMCPlugin.onLoad()
