@@ -21,11 +21,19 @@ git clone https://github.com/HomuraMC/Homura.git
 ```
 取得したら、Python仮想環境を作成します（推奨）
 ```
+# Windows
 python -m venv homura
+
+# Other
+python3 -m venv homura
 ```
 仮想環境を作成した場合は、次のコマンドを使用して仮想環境にPythonにアクセスしてください。
 ```
+# Windows
 ./homura/scripts/Activate
+
+# Other
+source homura/bin/activate
 ```
 次に、pipを使用して、Homuraが必要とするライブラリをインストールします。
 ```
