@@ -3,6 +3,8 @@ from quarry.types.nbt import RegionFile
 from quarry.types.nbt import RegionFile, TagCompound, TagLongArray, TagRoot
 from quarry.types.chunk import BlockArray, PackedArray
 from quarry.types.registry import LookupRegistry
+from .lognk import log
+logger = log.logger
 
 class WorldData():
 	emptyHeight = TagRoot({"": TagCompound({
@@ -29,6 +31,8 @@ class WorldData():
 				cx, x2 = divmod(x2, 16)
 				cz, z2 = divmod(z2, 16)
 
+				logger.info(f"Chunk({x2},{z2}) loading...")
+
 				if (str(rx) + ";" + str(rz)) in WorldData.loaded_regions:
 					region = WorldData.loaded_regions[str(rx) + ";" + str(rz)]
 				else:
@@ -44,8 +48,11 @@ class WorldData():
 						WorldData.loaded_chunks[
 							str(rx) + ";" + str(rz) + "#" + str(cx) + ";" + str(cz)
 						] = region.load_chunk(cx, cz)
+					logger.info(f"Chunk({x2},{z2}) loading successful")
 				except ValueError as e:
+					logger.error(f"Chunk({x2},{z2}) loading error (ValueError)")
 					continue
 				except OSError as e:
+					logger.error(f"Chunk({x2},{z2}) loading error (OSError)")
 					continue
 		return True
