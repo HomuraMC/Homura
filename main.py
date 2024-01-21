@@ -14,7 +14,7 @@ from classes.PluginLoader import PluginLoader
 from classes.Config import Config
 from classes.lognk import log
 
-reactor.suggestThreadPoolSize(50)
+import threading
 
 HomuraMCVersion = "v0.0.1"
 HomuraMCConfigVersion = 1
@@ -122,4 +122,5 @@ def main():
 
 
 if __name__ == "__main__":
-	main()
+	server = threading.Thread(target=main)
+	server.start()

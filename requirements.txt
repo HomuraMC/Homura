@@ -8,3 +8,5 @@ cryptography
 cached_property
 tqdm
 requests
+PyOpenSSL
+service-identity

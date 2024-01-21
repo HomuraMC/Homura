@@ -14,6 +14,9 @@ from twisted.internet import reactor
 from .lognk import log
 from .Config import Config
 
+from .events.PlayerJoinEvent import PlayerJoinEvent
+from .events.PlayerQuitEvent import PlayerQuitEvent
+
 
 class HomuraServerProtocol(ServerProtocol):
 	class chunk:
@@ -55,13 +58,14 @@ class HomuraServerProtocol(ServerProtocol):
 		self.ticker.add_loop(20, self.update_keep_alive)
 		self.ticker.add_loop(1, self.send_next_from_queue)	
 
-		joinMessage = "\u00a7e%s has joined."
+		event = PlayerJoinEvent(self)
+
 		for plugin in PluginLoader.plugins:
 			if getattr(plugin.HomuraMCPlugin,'onJoinPlayer',False) != False:
-				joinMessage = plugin.HomuraMCPlugin.onJoinPlayer(self)
+				plugin.HomuraMCPlugin.onJoinPlayer(self,event)
 		# Announce player join
-		self.factory.send_chat(joinMessage)
-		log.logger.info(joinMessage)
+		self.factory.send_chat(event.message)
+		log.logger.info(event.message)
 
 	def send_perimiter(self, size, thread=True):
 		for x in range(-size, size + 1):
@@ -89,13 +93,15 @@ class HomuraServerProtocol(ServerProtocol):
 		del WorldData.counter[f'{self.uuid}']
 		del WorldData.sent_chunks[f'{self.uuid}']
 		del WorldData.queue[f'{self.uuid}']
-		quitMessage = "\u00a7e%s has joined."
+
+		event = PlayerQuitEvent(self)
+
 		for plugin in PluginLoader.plugins:
 			if getattr(plugin.HomuraMCPlugin,'onQuitPlayer',False) != False:
-				quitMessage = plugin.HomuraMCPlugin.onQuitPlayer(self)
+				plugin.HomuraMCPlugin.onQuitPlayer(self,event)
 		# Announce player left
-		self.factory.send_chat(quitMessage)
-		log.logger.info(quitMessage)
+		self.factory.send_chat(event.message)
+		log.logger.info(event.message)
 
 
 	def update_keep_alive(self):
@@ -263,8 +269,8 @@ class HomuraServerProtocol(ServerProtocol):
 	def packet_player_block_placement(self,buff):
 		status = buff.unpack_varint()
 		x,y,z = buff.unpack_position()
-		face = buff.unpack('b')
-		log.logger.info(f"{self.display_name} block placement: {status},({x},{y},{z}),{face}")
+		face, cpx, cpy, cpz, inside = buff.unpack('bfff?')
+		log.logger.info(f"{self.display_name} block placement: {status},({x},{y},{z}),{face},({cpx},{cpy},{cpz}),{inside}")
 	
 	def packet_entity_action(self,buff):
 		entity = buff.unpack_varint()
