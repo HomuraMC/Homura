@@ -4,7 +4,7 @@
 
 HomuraMCは、Pythonで書かれたオープンソースMinecraftサーバーソフトウェアです。
 
-[私たちのDiscordに参加してください](https://discord.gg/967gvTTEWc)
+[私たちのDiscordに参加してみる](https://discord.gg/967gvTTEWc)
 ## 使い方（サーバー管理者）
 > [!WARNING]  
 > Homuraは、ほとんどの機能がまだ実装されていないα版です！本番環境で使用することはお勧めしません！
