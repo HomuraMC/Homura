@@ -1,13 +1,1 @@
-quarry
-datetime
-pyyaml
-colorama
-twisted
-certifi
-bitarray
-cryptography
-cached_property
-tqdm
-requests
-PyOpenSSL
-service-identity
+pycryptodome

@@ -1,125 +1,116 @@
-import configparser
-import sys
+import asyncio
+import json
+import struct
+from Crypto.PublicKey import RSA
+import logger
 import os
 
-from twisted.internet import reactor
-from quarry.net.server import ServerFactory
+log = logger.get_module_logger(__name__, verbose=True)
 
-from classes import toBool
-from classes import log
-from classes import HomuraServerProtocol
-from classes import download
-from classes.WorldData import WorldData
-from classes.PluginLoader import PluginLoader
-from classes.Config import Config
-from classes.lognk import log
+log.info("Loading libraries. please wait...")
 
-import threading
+# 1024ビットのRSAキーペアを生成
+key = RSA.generate(1024)
 
-HomuraMCVersion = "v0.0.1"
-HomuraMCConfigVersion = 1
-HomuraMCConfigVersionStr = "v0.0.1"
-logger = log.logger
-download_jdk = download.download_jdk
+# 公開鍵を表示 しません
+# log.info(key.publickey().export_key())
 
-defaultconf = {
-	"config_version": HomuraMCConfigVersion,
-	"server_ip": "0.0.0.0",
-	"port": 25565,
-	"motd": "A Minecraft Server",
-	"max_players": 20,
-	"server_icon": "server_icon_path_here",
-	"eula": False,
-}
+# 秘密鍵を表示 しません
+# log.info(key.export_key())
 
-config = Config()
-if not os.path.isfile(os.path.join(os.path.dirname(__file__), "config.yml")):
-	config.save(defaultconf)
-config.load()
+def pack_varint(data: int) -> bytes:
+	o = b''
 
-if not os.path.exists(os.path.join(os.path.dirname(__file__), "assets/java")):
-	logger.warning("Java16 not found. downloading...")
-	# logger.warning(
-	#	 "Homura cannot determine CPU architecture. Therefore, if the wrong java is downloaded, please download java again from setup.py."
-	# )
-	download_jdk()
-	logger.info("Download of server jar has been completed.")
+	while True:
+		byte = data & 0x7F
+		data >>= 7
+		o += struct.pack('B', byte | (0x80 if data > 0 else 0))
 
-if not os.path.isfile(
-	os.path.join(os.path.dirname(__file__), "assets/registry/server.jar")
-):
-	logger.warning("server.jar not found. downloading...")
-	download.download_sjar()
-	logger.info("Download of server jar has been completed.")
+		if data == 0:
+			break
 
+	return o
 
+async def unpack_varint_socket(reader: asyncio.StreamReader) -> int:
+	data = 0
+	for i in range(5):
+		byte = await reader.readexactly(1)
+		if not byte:
+			break
 
-if Config.data["eula"] != True:
-	logger.error(
-		"You do not agree with the eula! The eula can be read at https://aka.ms/MinecraftEULA and to agree, set the eula to True in config.yml."
-	)
-	print("Press Key to Continue...")
-	input()
-	sys.exit()
+		byte = ord(byte)
+		data |= (byte & 0x7F) << 7 * i
 
-pluginloader = PluginLoader()
-pluginloader.loadPlugins()
+		if not byte & 0x80:
+			break
 
-logger.info("Loading spawn chunks, please wait...")
+	return data
 
-worlddata = WorldData()
-worlddata.loadChunk()
+async def send_data(writer: asyncio.StreamWriter, response):
+	writer.write(response)
+	await writer.drain()
 
-logger.info("Spawn chunks succesfully loaded!")
-for plugin in PluginLoader.plugins:
-	if getattr(plugin.HomuraMCPlugin,'onSpawnChunkLoad',False) != False:
-		plugin.HomuraMCPlugin.onSpawnChunkLoad()
+async def read_long_data(reader: asyncio.StreamReader, size: int) -> bytearray:
+	data = bytearray()
 
-class HomuraServerFactory(ServerFactory):
-	protocol = HomuraServerProtocol
-	motd = Config.data["motd"]
-	force_protocol_version = 754
-	max_players = int(Config.data["max_players"])
-	if Config.data["server_icon"] == "":
-		icon_path = None
-	elif os.path.isfile(Config.data["server_icon"]) == False:
-		icon_path = None
-	else:
-		icon_path = Config.data["server_icon"]
+	while len(data) < size:
+		chunk = await reader.readexactly(size - len(data))
+		data += bytearray(chunk)
 
-	def send_chat(self, message):
-		for player in self.players:
-			player.send_packet(
-				"chat_message",
-				player.buff_type.pack_chat(message) + player.buff_type.pack("B", 0) + player.buff_type.pack_uuid(player.uuid),
-			)
+	return data
 
-	def send_msg(self, message, uuid):
-		for player in self.players:
-			if player.uuid == uuid:
-				player.send_packet(
-					"chat_message",
-					player.buff_type.pack_chat(message) + player.buff_type.pack("B", 0) + player.buff_type.pack_uuid(player.uuid),
-				)
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
+	packet_len = await unpack_varint_socket(reader)
+	data = await read_long_data(reader, packet_len)
 
-	def getPlayers(self):
-		pltt = ""
-		for player in self.players:
-			pltt = f"{player.display_name},"
-		return pltt
+	if data[-1] == 1:
+		await status(writer)
+	elif data[-1] == 2:
+		await login(writer)
 
-	def getPlayersCount(self):
-		return len(self.players)
+async def status(writer: asyncio.StreamWriter):
+	status_data = {
+		"version": {
+			"name": "1.16.5",
+			"protocol": 754
+		},
+		"players": {
+			"max": 0,
+			"online": 0
+		},
+		"description": {
+			"text": "せつめい"
+		}
+	}
+	response = json.dumps(status_data).encode('utf8')
+	response = pack_varint(len(response)) + response
+	response = pack_varint(0x00) + response
+	response = pack_varint(len(response)) + response
+	await send_data(writer, response)
 
-def main():
-	# Create factory
-	factory = HomuraServerFactory()
+def generate_verify_token():
+    # Generate a 4-byte random token
+    verify_token = os.urandom(4)
+    return verify_token
 
-	# Listen
-	logger.info(f"Homura {HomuraMCVersion} is Finished Loading!")
-	factory.listen(Config.data["server_ip"], int(Config.data["port"]))
-	reactor.run()
+async def login(writer: asyncio.StreamWriter):
+	response = pack_varint(len("")) + "".encode('utf8')
+	response = response + pack_varint(len(key.publickey().export_key())) + key.publickey().export_key()
+	response = response + pack_varint(4) + generate_verify_token()
+	response = pack_varint(0x01) + response
+	response = pack_varint(len(response)) + response
+	await send_data(writer, response)
 
+async def main():
+	server = await asyncio.start_server(handle_client, '127.0.0.1', 25565)
+
+	async with server:
+		try:
+			await server.serve_forever()
+		except KeyboardInterrupt:
+			pass
+		finally:
+			server.close()
 
 if __name__ == "__main__":
-	main()
+	asyncio.run(main())
