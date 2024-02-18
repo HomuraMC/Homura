@@ -63,8 +63,8 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
 	packet_len = await unpack_varint_socket(reader)
 	data = await read_long_data(reader, packet_len)
 
-	logger.info(reader)
-	logger.info(data)
+	log.info(reader)
+	log.info(data)
 
 	if data[-1] == 1:
 		await status(writer)
@@ -109,6 +109,7 @@ async def main():
 
 	async with server:
 		try:
+			log.info("Server Listened at 127.0.0.1:25565")
 			await server.serve_forever()
 		except KeyboardInterrupt:
 			pass

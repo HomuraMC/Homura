@@ -11,8 +11,9 @@ def get_module_logger(module, verbose):
 def _set_handler(logger, handler, verbose):
 	if verbose:
 		handler.setLevel(DEBUG)
+		handler.setFormatter(Formatter('[%(asctime)s %(name)s][%(lineno)s][%(funcName)s][%(levelname)s] %(message)s'))
 	else:
 		handler.setLevel(INFO)
-	handler.setFormatter(Formatter('%(asctime)s %(name)s:%(lineno)s %(funcName)s [%(levelname)s]: %(message)s'))
+		handler.setFormatter(Formatter('[%(asctime)s %(name)s][%(levelname)s] %(message)s'))
 	logger.addHandler(handler)
 	return logger
