@@ -63,6 +63,9 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
 	packet_len = await unpack_varint_socket(reader)
 	data = await read_long_data(reader, packet_len)
 
+	logger.info(reader)
+	logger.info(data)
+
 	if data[-1] == 1:
 		await status(writer)
 	elif data[-1] == 2:
