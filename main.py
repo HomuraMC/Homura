@@ -122,5 +122,4 @@ def main():
 
 
 if __name__ == "__main__":
-	server = threading.Thread(target=main)
-	server.start()
+	main()

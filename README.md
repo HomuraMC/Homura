@@ -20,11 +20,19 @@ git clone https://github.com/HomuraMC/Homura.git
 ```
 Once obtained, create a Python virtual environment (recommended)
 ```
+# Windows
 python -m venv homura
+
+# Other
+python3 -m venv homura
 ```
 If you have created a virtual environment, access Python in the virtual environment with the following command.
 ```
+# Windows
 ./homura/scripts/Activate
+
+# Other
+source homura/bin/activate
 ```
 Next, use pip to install the libraries required by Homura.
 ```
