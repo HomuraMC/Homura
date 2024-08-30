@@ -5,11 +5,10 @@ import os
 import random
 import string
 import struct
-import time
-import uuid
 
 import aiohttp
 import orjson
+from nbt import nbt
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import ciphers, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
@@ -129,6 +128,7 @@ class Server:
         )
         data = b"\x00" + Utils.encodeVarInt(len(data)) + data
         writer.write(Utils.encodeVarInt(len(data)) + data)
+        await writer.drain()
         pos = 0
         response = b""
         while True:
@@ -200,6 +200,7 @@ class Server:
         )
         data = Utils.encodeVarInt(len(data)) + data
         writer.write(data)
+        await writer.drain()
 
         response = b""
         while True:
@@ -263,7 +264,6 @@ class Server:
                 hasJoinedResponse: dict = (
                     await hasJoined.json() if hasJoined.status == 200 else {}
                 )
-                print(hasJoinedResponse)
                 if hasJoined.status != 200 or "id" not in hasJoinedResponse:
                     data = orjson.dumps(
                         {"text": "サーバーでの認証に失敗しました。", "color": "red"}
@@ -276,17 +276,11 @@ class Server:
                     writer.close()
                     return
 
+        hasJoinedResponse["protocolVersion"] = protocolVersion
+        hasJoinedResponse["reader"] = reader
+        hasJoinedResponse["writer"] = writer
         player: Player = Player.model_validate(hasJoinedResponse)
         cls.logger.info(f"{player.name} is trying connect...")
-        print(player)
-
-        """
-        data = orjson.dumps({"text": "まだ実装してません(´・ω・｀)"})
-        data = b"\x00" + Utils.encodeVarInt(len(data)) + data
-        data = Utils.encodeVarInt(len(data)) + data
-        data = encryptor.update(data)
-        writer.write(data)
-        """
 
         data = Utils.encodeVarInt(cls.config.server.compression_threshold)
         data = b"\x03" + Utils.encodeVarInt(len(data)) + data
@@ -294,7 +288,74 @@ class Server:
         await writer.drain()
 
         data = player.id.bytes + Utils.packString(player.name)
-        data = b"\x03" + Utils.encodeVarInt(len(data)) + data
+        data = b"\x02" + Utils.encodeVarInt(len(data)) + data
         data = Utils.packPacket(data, cls.config.server.compression_threshold)
         writer.write(data)
         await writer.drain()
+
+        dimensionCodec = nbt.NBTFile()
+
+        dimensionTypes = nbt.TAG_Compound(name="minecraft:dimension_type")
+        dimensionTypes.tags.append(
+            nbt.TAG_String(name="type", value="minecraft:dimension_type")
+        )
+
+        registries = nbt.TAG_List(name="value")
+        registries.tags.append(nbt.TAG_String(name="name", value="minecraft:overworld"))
+        registries.tags.append(nbt.TAG_Int(name="id", value=0))
+
+        elements = nbt.TAG_Compound()
+        elements.tags.append(nbt.TAG_Byte(name="natural", value=1))
+        elements.tags.append(nbt.TAG_Float(name="ambient_light", value=0.0))
+        elements.tags.append(
+            nbt.TAG_String(name="infiniburn", value="minecraft:infiniburn_overworld")
+        )
+        elements.tags.append(nbt.TAG_Byte(name="respawn_anchor_works", value=0))
+        elements.tags.append(nbt.TAG_Byte(name="has_skylight", value=1))
+        elements.tags.append(nbt.TAG_Byte(name="bed_works", value=1))
+        elements.tags.append(
+            nbt.TAG_String(name="effects", value="minecraft:overworld")
+        )
+        elements.tags.append(nbt.TAG_Byte(name="has_raids", value=1))
+        elements.tags.append(nbt.TAG_Int(name="logical_height", value=256))
+        elements.tags.append(nbt.TAG_Float(name="coordinate_scale", value=1.0))
+        elements.tags.append(nbt.TAG_Byte(name="ultrawarm", value=0))
+        elements.tags.append(nbt.TAG_Byte(name="has_ceiling", value=0))
+
+        data = (
+            struct.pack(">i?BB", 0, False, 1, 1)
+            + Utils.packVarInt(1)
+            + Utils.packString("overworld")
+            + b"\x00"
+            + b"\x00"
+            + Utils.packString("overworld")
+            + struct.pack(">q", 42)
+            + Utils.packVarInt(0)
+            + Utils.packVarInt(2)
+            + struct.pack(">????", False, True, False, False)
+        )
+        data = b"\x24" + Utils.encodeVarInt(len(data)) + data
+        data = Utils.packPacket(data, cls.config.server.compression_threshold)
+        writer.write(data)
+        await writer.drain()
+
+        data = struct.pack(">dddff?", 8, 63, 8, 0, 90, 0b00000) + Utils.packVarInt(0)
+        data = b"\x34" + Utils.encodeVarInt(len(data)) + data
+        data = Utils.packPacket(data, cls.config.server.compression_threshold)
+        writer.write(data)
+        await writer.drain()
+
+        cls.logger.info(f"{player.name} joined the game")
+        await cls.tickLoop(player)
+
+    @classmethod
+    async def tickLoop(cls, player: Player):
+        count = 0
+        while True:
+            data = struct.pack(">Q", 0)
+            data = b"\x1F" + Utils.encodeVarInt(len(data)) + data
+            data = Utils.packPacket(data, cls.config.server.compression_threshold)
+            player.writer.write(data)
+            await player.writer.drain()
+            count += 1
+            await asyncio.sleep(0.05)

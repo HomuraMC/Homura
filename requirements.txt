@@ -20,6 +20,7 @@ hyperlink==21.0.0
 idna==3.7
 incremental==24.7.2
 multidict==6.0.5
+NBT==1.5.1
 omegaconf==2.3.0
 orjson==3.10.7
 pyasn1==0.6.0
