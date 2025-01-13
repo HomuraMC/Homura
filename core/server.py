@@ -65,7 +65,7 @@ class Server:
             return
         serverDetails = orjson.dumps(
             {
-                "version": {"name": "Homura", "protocol": 340},
+                "version": {"name": self.config.detail.name, "protocol": 340},
                 "players": {"max": self.config.server.max_players, "online": 0},
                 "description": {"text": self.config.detail.motd},
             }
