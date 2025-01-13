@@ -1,19 +1,23 @@
 import asyncio
+import hashlib
 import logging
-
 import os
-import orjson
 import random
 import string
-import hashlib
-from httpx import AsyncClient
+import struct
+from typing import List
+from uuid import UUID
+
+import orjson
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import ciphers, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from cryptography.hazmat.primitives.ciphers import algorithms, modes
+from httpx import AsyncClient
 
 from .config import Config
 from .objects.data import Data
+from .objects.player import Player
 from .utils import decodeVarInt, encodeVarInt, receiveData
 
 
@@ -28,6 +32,7 @@ class Server:
         self.logger = logging.getLogger("HomuraMC")
         self.config = Config().config
         self.http = AsyncClient()
+        self.players: List[Player] = []
 
     async def run(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
         data = Data(await receiveData(reader))
@@ -94,6 +99,7 @@ class Server:
         if data != b"\x00":
             writer.close()
             return
+
         username = response.getString()
         verifyToken = os.urandom(4)
         serverId = (
@@ -113,6 +119,7 @@ class Server:
         if response.getData(1) != b"\x01":
             writer.close()
             return
+
         sharedSecret = self.key.decrypt(response.getBinary(), padding.PKCS1v15())
         clientVerifyToken = self.key.decrypt(response.getBinary(), padding.PKCS1v15())
         if verifyToken != clientVerifyToken:
@@ -138,6 +145,7 @@ class Server:
             )
         else:
             hash = format(hash, "x")
+        # &ip={writer.get_extra_info('sockname')[0]}
         response = await self.http.get(
             f"https://sessionserver.mojang.com/session/minecraft/hasJoined?username={username}&serverId={hash}"
         )
@@ -152,6 +160,7 @@ class Server:
             writer.close()
             return
 
+        """
         kickMessage = orjson.dumps(
             {"text": "HomuraMC Test Server / HomuraMCテストサーバー", "color": "green"}
         )
@@ -160,3 +169,159 @@ class Server:
         await writer.drain()
         writer.close()
         return
+        """
+
+        # Compression packet
+        if self.config.server.compression_threshold >= 0:
+            data = (
+                Data()
+                .addData(b"\x03")
+                .addData(encodeVarInt(self.config.server.compression_threshold))
+            )
+
+            writer.write(
+                data.getAllForSend(
+                    encryptor=encryptor,
+                )
+            )
+            await writer.drain()
+
+        data = (
+            Data()
+            .addData(b"\x02")
+            .addDataWithLength(str(UUID(jsonData["id"])).encode())
+            .addDataWithLength(jsonData["name"].encode())
+        )
+
+        writer.write(
+            data.getAllForSend(
+                encryptor=encryptor,
+                compressionThreshold=self.config.server.compression_threshold,
+            )
+        )
+        await writer.drain()
+
+        player = Player(
+            id=UUID(jsonData["id"]),
+            name=jsonData["name"],
+            encryptor=encryptor,
+            decryptor=decryptor,
+            writer=writer,
+            reader=reader,
+            entityId=random.randint(0, 10000),
+        )
+        await self.joinGame(player)
+
+    async def sendChatMessage(self, message: dict, recipients: List[Player]):
+        _message = orjson.dumps(message)
+        for recipient in recipients:
+            data = (
+                Data()
+                .addData(b"\x0f")
+                .addDataWithLength(_message)
+                .addData(struct.pack(">B", 0))
+            )
+            recipient.writer.write(
+                data.getAllForSend(
+                    encryptor=recipient.encryptor,
+                    compressionThreshold=self.config.server.compression_threshold,
+                )
+            )
+            await recipient.writer.drain()
+
+    async def getPacket(self, player: Player):
+        data = await receiveData(
+            player.reader,
+            passError=True,
+            decryptor=player.decryptor,
+            compressionThreshold=self.config.server.compression_threshold,
+        )
+        response = Data(data)
+        print(response.data)
+        packetId = response.getData(1)
+        if len(response.data) == 0:
+            return
+        elif packetId == b"\x0b":
+            return
+        elif packetId == b"\x02":
+            await self.sendChatMessage(
+                {"text": f"<{player.name}> {response.getString()}"}, self.players
+            )
+
+    async def joinGame(self, player: Player):
+        data = (
+            Data()
+            .addData(b"\x23")
+            .addData(
+                struct.pack(
+                    ">iBiBB", player.entityId, 1, 0, 0, self.config.server.max_players
+                )
+            )
+            .addDataWithLength("flat".encode())
+            .addData(struct.pack(">?", False))
+        )
+        player.writer.write(
+            data.getAllForSend(
+                encryptor=player.encryptor,
+                compressionThreshold=self.config.server.compression_threshold,
+            )
+        )
+        await player.writer.drain()
+
+        data = (
+            Data()
+            .addData(b"\x2f")
+            .addData(struct.pack(">dddff?", 0, 255, 0, 0, 0, 0b00000))
+            .addData(data.packVarInt(0))
+        )
+        player.writer.write(
+            data.getAllForSend(
+                encryptor=player.encryptor,
+                compressionThreshold=self.config.server.compression_threshold,
+            )
+        )
+        await player.writer.drain()
+
+        data = (
+            Data()
+            .addData(b"\x2c")
+            .addData(
+                struct.pack(">?ff", 0b00000, 0.4000000059604645, 0.4000000059604645)
+            )
+        )
+        player.writer.write(
+            data.getAllForSend(
+                encryptor=player.encryptor,
+                compressionThreshold=self.config.server.compression_threshold,
+            )
+        )
+        await player.writer.drain()
+
+        self.players.append(player)
+        try:
+            await self.sendChatMessage(
+                {
+                    "text": f"{player.name} が世界に参加しました",
+                    "color": "yellow",
+                },
+                self.players,
+            )
+
+            count = 0
+            while not player.writer.is_closing():
+                if count // 20:
+                    data = Data().addData(b"\x1f").addData(struct.pack(">Q", 0))
+                    player.writer.write(
+                        data.getAllForSend(
+                            encryptor=player.encryptor,
+                            compressionThreshold=self.config.server.compression_threshold,
+                        )
+                    )
+                    await player.writer.drain()
+                await self.getPacket(player)
+                count += 1
+                await asyncio.sleep(0.05)
+            self.players.remove(player)
+        except ConnectionResetError:
+            player.writer.close()
+            self.players.remove(player)

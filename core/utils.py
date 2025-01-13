@@ -1,4 +1,8 @@
 import asyncio
+import zlib
+from typing import Optional
+
+from cryptography.hazmat.primitives.ciphers.base import CipherContext
 
 
 def encodeVarInt(num):
@@ -23,7 +27,13 @@ def decodeVarInt(data):
     return val
 
 
-async def receiveData(reader: asyncio.StreamReader, *, passError: bool = False):
+async def receiveData(
+    reader: asyncio.StreamReader,
+    *,
+    passError: bool = False,
+    decryptor: Optional[CipherContext] = None,
+    compressionThreshold: int = -1
+):
     buffer = b""
     while True:
         r = await reader.read(1)
@@ -36,5 +46,11 @@ async def receiveData(reader: asyncio.StreamReader, *, passError: bool = False):
                 break
             else:
                 raise e
+    if decryptor:
+        buffer = decryptor.update(buffer)
+
     size = decodeVarInt(buffer)
-    return await reader.read(size)
+    data = await reader.read(size)
+    if decryptor:
+        data = decryptor.update(data)
+    return zlib.decompress(data) if compressionThreshold >= 0 else data
