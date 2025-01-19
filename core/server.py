@@ -7,6 +7,7 @@ import string
 import struct
 from typing import List
 from uuid import UUID
+from datetime import datetime
 
 import orjson
 from cryptography.hazmat.backends import default_backend
@@ -80,8 +81,7 @@ class Server:
         if response[0] != 1:
             writer.close()
             return
-        data = Data()
-        data.addDataWithLength(response)
+        data = Data(response)
         writer.write(data.getAllForSend())
         await writer.drain()
         writer.close()
@@ -237,15 +237,17 @@ class Server:
             compressionThreshold=self.config.server.compression_threshold,
         )
         response = Data(data)
-        print(response.data)
-        packetId = response.getData(1)
         if len(response.data) == 0:
             return
-        elif packetId == b"\x0b":
+        packetId = response.getData(1)
+        print(packetId, response.data)
+        if packetId == b"\x0b":
             return
         elif packetId == b"\x02":
+            message = response.getString()
+            print(message)
             await self.sendChatMessage(
-                {"text": f"<{player.name}> {response.getString()}"}, self.players
+                {"text": f"<{player.name}> {message}"}, self.players
             )
 
     async def joinGame(self, player: Player):
@@ -309,6 +311,7 @@ class Server:
 
             count = 0
             while not player.writer.is_closing():
+                await self.getPacket(player)
                 if count // 20:
                     data = Data().addData(b"\x1f").addData(struct.pack(">Q", 0))
                     player.writer.write(
@@ -318,7 +321,6 @@ class Server:
                         )
                     )
                     await player.writer.drain()
-                await self.getPacket(player)
                 count += 1
                 await asyncio.sleep(0.05)
             self.players.remove(player)

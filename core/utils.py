@@ -50,7 +50,12 @@ async def receiveData(
         buffer = decryptor.update(buffer)
 
     size = decodeVarInt(buffer)
-    data = await reader.read(size)
+    data = b""
+    while len(data) < size:
+        data += await reader.read(1)
     if decryptor:
         data = decryptor.update(data)
-    return zlib.decompress(data) if compressionThreshold >= 0 else data
+    if compressionThreshold >= 0:
+        if len(data) >= compressionThreshold:
+            data = zlib.decompress(data)
+    return data

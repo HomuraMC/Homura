@@ -90,7 +90,7 @@ class Data:
     ):
         data = encodeVarInt(len(self.data)) + self.data
         if compressionThreshold >= 0:
-            if len(data) >= compressionThreshold:
+            if len(data) <= compressionThreshold:
                 data = encodeVarInt(len(data)) + zlib.compress(data)
             else:
                 data = encodeVarInt(0) + data
