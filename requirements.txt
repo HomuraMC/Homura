@@ -1,4 +1,4 @@
-orjson
-cryptography
+mcproto
 httpx
-omegaconf
+prompt_toolkit
+orjson
